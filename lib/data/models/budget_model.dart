@@ -11,7 +11,7 @@ class BudgetModel extends HiveObject {
   double maxBudget;
 
   @HiveField(2)
-  String goalName; // tambahan!!!
+  String goalName;   // ← FIELD BARU (WAJIB ADA)
 
   BudgetModel({
     required this.category,

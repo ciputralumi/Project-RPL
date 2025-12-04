@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../data/models/transaction_model.dart';
 import '../../providers/transaction_provider.dart';
+import '../../providers/account_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../themes/category_colors.dart';
 import 'edit_transaction_modal.dart';
@@ -24,6 +25,7 @@ class TransactionDetailPage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
+          // EDIT BUTTON
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
@@ -35,33 +37,44 @@ class TransactionDetailPage extends StatelessWidget {
               );
             },
           ),
+
+          // DELETE BUTTON
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () async {
               final confirm = await _confirmDelete(context);
               if (confirm == true) {
-                await context
-                    .read<TransactionProvider>()
-                    .deleteTransaction(tx.id);
+                final txProvider = context.read<TransactionProvider>();
+                final accProvider = context.read<AccountProvider>();
 
-                Navigator.pop(context);
+                final hiveKey = tx.key as int;
+
+                // HAPUS TRANSAKSI (AUTO REVERT SALDO)
+                await txProvider.deleteTransaction(
+                  hiveKey,
+                  accountProvider: accProvider,
+                );
+
+                Navigator.pop(context); // keluar dari detail page
               }
             },
           ),
         ],
       ),
 
+      // BODY
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _header(catColor, settings),
-            const SizedBox(height: 24),
+            const SizedBox(height: 30),
             _infoRow("Catatan", tx.note),
             _infoRow("Kategori", tx.category),
             _infoRow("Jenis", tx.isIncome ? "Pemasukan" : "Pengeluaran"),
             _infoRow("Tanggal", _fmtDate(tx.date)),
+            _infoRow("Akun", "ID: ${tx.accountId}"),
             const Spacer(),
           ],
         ),
@@ -70,7 +83,7 @@ class TransactionDetailPage extends StatelessWidget {
   }
 
   // =======================================================
-  // HEADER AMOUNT CARD
+  // HEADER CARD
   // =======================================================
   Widget _header(Color catColor, SettingsProvider s) {
     final amount = "${s.currencySymbol}${_format(tx.amount)}";
@@ -78,23 +91,25 @@ class TransactionDetailPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: catColor.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
+        color: catColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: catColor.withValues(alpha: 0.25),
+            radius: 26,
+            backgroundColor: catColor.withOpacity(0.25),
             child: Icon(
               tx.isIncome ? Icons.arrow_downward : Icons.arrow_upward,
               color: catColor,
+              size: 26,
             ),
           ),
           const SizedBox(width: 16),
           Text(
             amount,
             style: TextStyle(
-              fontSize: 26,
+              fontSize: 28,
               fontWeight: FontWeight.bold,
               color: tx.isIncome ? Colors.green : Colors.red,
             ),
@@ -111,17 +126,15 @@ class TransactionDetailPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.black54,
-              ),
-            ),
-          ),
+              width: 100,
+              child: Text(
+                title,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600, color: Colors.black54),
+              )),
           Expanded(
             child: Text(
               value,
@@ -134,15 +147,10 @@ class TransactionDetailPage extends StatelessWidget {
   }
 
   // =======================================================
-  // DATE FORMAT
+  // HELPERS
   // =======================================================
-  String _fmtDate(DateTime d) {
-    return "${d.day}/${d.month}/${d.year}";
-  }
+  String _fmtDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
-  // =======================================================
-  // NUMBER FORMAT
-  // =======================================================
   String _format(double x) {
     final s = x.round().toString().split('').reversed.join();
     final parts = <String>[];
@@ -151,9 +159,7 @@ class TransactionDetailPage extends StatelessWidget {
       parts.add(s.substring(i, (i + 3 > s.length) ? s.length : i + 3));
     }
 
-    return parts.reversed
-        .map((e) => e.split('').reversed.join())
-        .join('.');
+    return parts.reversed.map((e) => e.split('').reversed.join()).join('.');
   }
 
   // =======================================================
@@ -163,8 +169,10 @@ class TransactionDetailPage extends StatelessWidget {
     return showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text("Hapus Transaksi?"),
-        content: const Text("Tindakan ini tidak bisa dibatalkan."),
+        content: const Text(
+            "Transaksi ini akan dihapus dan saldo akun akan dikembalikan."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),

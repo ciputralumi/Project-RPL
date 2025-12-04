@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-
 import '../data/models/budget_model.dart';
 
 class BudgetProvider extends ChangeNotifier {
-  static const String boxName = "budgets";
+  static const String boxName = "budgets_box";
 
   late Box<BudgetModel> _box;
 
@@ -15,22 +14,27 @@ class BudgetProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addBudget(BudgetModel model) async {
-    await _box.add(model);
+  // ============================================================
+  /// ADD NEW BUDGET
+  // ============================================================
+  Future<void> addBudget(BudgetModel b) async {
+    await _box.add(b);
     notifyListeners();
   }
 
-  Future<void> updateBudget(int key, BudgetModel model) async {
-    await _box.put(key, model);
+  // ============================================================
+  /// UPDATE EXISTING BUDGET
+  // ============================================================
+  Future<void> updateBudget(int keyId, BudgetModel updated) async {
+    await _box.put(keyId, updated);
     notifyListeners();
   }
 
-  Future<void> deleteBudget(int key) async {
-    await _box.delete(key);
+  // ============================================================
+  /// DELETE BUDGET
+  // ============================================================
+  Future<void> deleteBudget(int keyId) async {
+    await _box.delete(keyId);
     notifyListeners();
-  }
-
-  BudgetModel? getByKey(int key) {
-    return _box.get(key);
   }
 }

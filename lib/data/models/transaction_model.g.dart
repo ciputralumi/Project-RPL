@@ -8,7 +8,7 @@ part of 'transaction_model.dart';
 
 class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
   @override
-  final int typeId = 1;
+  final int typeId = 0;
 
   @override
   TransactionModel read(BinaryReader reader) {
@@ -17,12 +17,12 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return TransactionModel(
-      id: fields[0] as String,
-      note: fields[1] as String,
+      amount: fields[0] as double,
+      isIncome: fields[1] as bool,
       category: fields[2] as String,
-      amount: fields[3] as double,
-      isIncome: fields[4] as bool,
-      date: fields[5] as DateTime,
+      note: fields[3] as String,
+      date: fields[4] as DateTime,
+      accountId: fields[5] as int,
     );
   }
 
@@ -31,17 +31,17 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
     writer
       ..writeByte(6)
       ..writeByte(0)
-      ..write(obj.id)
+      ..write(obj.amount)
       ..writeByte(1)
-      ..write(obj.note)
+      ..write(obj.isIncome)
       ..writeByte(2)
       ..write(obj.category)
       ..writeByte(3)
-      ..write(obj.amount)
+      ..write(obj.note)
       ..writeByte(4)
-      ..write(obj.isIncome)
+      ..write(obj.date)
       ..writeByte(5)
-      ..write(obj.date);
+      ..write(obj.accountId);
   }
 
   @override

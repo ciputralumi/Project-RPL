@@ -3,22 +3,27 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/transaction_provider.dart';
+import '../../providers/account_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../data/models/transaction_model.dart';
 import '../../themes/category_colors.dart';
+import 'add_transaction_modal.dart';
 import 'edit_transaction_modal.dart';
 
-class TransactionsListPage extends StatefulWidget {
-  const TransactionsListPage({super.key});
+class TransactionsPage extends StatefulWidget {
+  const TransactionsPage({super.key});
 
   @override
-  State<TransactionsListPage> createState() => _TransactionsListPageState();
+  State<TransactionsPage> createState() => _TransactionsPageState();
 }
 
-class _TransactionsListPageState extends State<TransactionsListPage> {
-  String searchQuery = "";
-  String selectedCategory = "Semua";
+class _TransactionsPageState extends State<TransactionsPage> {
+  String search = "";
+  String filterType = "All"; // All, Income, Expense
+  String sort = "Terbaru";
   final _searchController = TextEditingController();
+
+  Color get primary => const Color(0xFF6C4EFF);
 
   @override
   void dispose() {
@@ -26,188 +31,261 @@ class _TransactionsListPageState extends State<TransactionsListPage> {
     super.dispose();
   }
 
-  Color get primary => const Color(0xFF6C4EFF);
-
   @override
   Widget build(BuildContext context) {
-    final tx = context.watch<TransactionProvider>();
+    final txProvider = context.watch<TransactionProvider>();
     final settings = context.watch<SettingsProvider>();
 
-    final all = tx.allTransactions;
+    List<TransactionModel> list = txProvider.allTransactions;
 
-    final categories = ["Semua", ...{for (final t in all) t.category}];
+    // FILTER
+    if (filterType == "Income") {
+      list = list.where((t) => t.isIncome).toList();
+    } else if (filterType == "Expense") {
+      list = list.where((t) => !t.isIncome).toList();
+    }
 
-    final filtered = all.where((t) {
-      final matchSearch = t.note.toLowerCase().contains(searchQuery.toLowerCase());
-      final matchCategory = selectedCategory == "Semua" ? true : t.category == selectedCategory;
-      return matchSearch && matchCategory;
-    }).toList();
+    // SEARCH
+    if (search.isNotEmpty) {
+      list = list
+          .where((t) =>
+              t.note.toLowerCase().contains(search.toLowerCase()) ||
+              t.category.toLowerCase().contains(search.toLowerCase()))
+          .toList();
+    }
+
+    // SORT
+    list.sort((a, b) {
+      switch (sort) {
+        case "Terlama":
+          return a.date.compareTo(b.date);
+        case "Terbesar":
+          return b.amount.compareTo(a.amount);
+        case "Terkecil":
+          return a.amount.compareTo(b.amount);
+        default:
+          return b.date.compareTo(a.date);
+      }
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F8),
-      appBar: AppBar(
-        title: const Text("Semua Transaksi"),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          // SEARCH + ACTION
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)]),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (v) => setState(() => searchQuery = v),
-                      decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
-                        hintText: "Cari catatan atau kategori...",
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        suffixIcon: searchQuery.isNotEmpty
-                            ? GestureDetector(onTap: () { _searchController.clear(); setState(() => searchQuery = ""); }, child: Icon(Icons.close, color: Colors.grey.shade600))
-                            : null,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // HEADER
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Semua Transaksi",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  ),
+                  GestureDetector(
+                    onTap: _openAddModal,
+                    child: Container(
+                      height: 42,
+                      width: 42,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [primary, primary.withOpacity(0.9)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                              color: primary.withOpacity(0.25),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6))
+                        ],
                       ),
+                      child:
+                          const Icon(Icons.add, color: Colors.white, size: 26),
                     ),
+                  )
+                ],
+              ),
+            ),
+
+            // SEARCH BOX
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.04), blurRadius: 8)
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (v) => setState(() => search = v),
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
+                    hintText: "Cari transaksi atau kategori...",
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    suffixIcon: search.isNotEmpty
+                        ? GestureDetector(
+                            onTap: () {
+                              _searchController.clear();
+                              setState(() => search = "");
+                            },
+                            child:
+                                Icon(Icons.close, color: Colors.grey.shade500),
+                          )
+                        : null,
                   ),
                 ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () => _showCategoryPicker(context, categories),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)]),
-                    child: Row(children: [Icon(Icons.filter_list, color: primary), const SizedBox(width: 6), Text(selectedCategory, style: const TextStyle(fontWeight: FontWeight.w600))]),
-                  ),
-                )
-              ],
+              ),
             ),
-          ),
 
-          const SizedBox(height: 6),
-
-          // CATEGORY LIST HORIZONTAL (quick taps)
-          SizedBox(
-            height: 46,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (_, i) {
-                final cat = categories[i];
-                final active = selectedCategory == cat;
-                final color = cat == "Semua" ? primary : CategoryColors.getColor(cat);
-                return GestureDetector(
-                  onTap: () => setState(() => selectedCategory = cat),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: active ? color.withOpacity(0.14) : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: active ? color.withOpacity(0.18) : Colors.grey.shade200),
-                      boxShadow: active ? [BoxShadow(color: color.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 4))] : null,
-                    ),
+            // FILTERS + SORT
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  _chip("All", filterType == "All",
+                      () => setState(() => filterType = "All")),
+                  const SizedBox(width: 8),
+                  _chip("Income", filterType == "Income",
+                      () => setState(() => filterType = "Income")),
+                  const SizedBox(width: 8),
+                  _chip("Expense", filterType == "Expense",
+                      () => setState(() => filterType = "Expense")),
+                  const Spacer(),
+                  PopupMenuButton<String>(
+                    onSelected: (v) => setState(() => sort = v),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: "Terbaru", child: Text("Terbaru")),
+                      PopupMenuItem(value: "Terlama", child: Text("Terlama")),
+                      PopupMenuItem(
+                          value: "Terbesar", child: Text("Nominal Terbesar")),
+                      PopupMenuItem(
+                          value: "Terkecil", child: Text("Nominal Terkecil")),
+                    ],
                     child: Row(
                       children: [
-                        if (cat != "Semua") Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-                        if (cat != "Semua") const SizedBox(width: 8),
-                        Text(cat, style: TextStyle(fontWeight: FontWeight.w600, color: active ? color : Colors.black87)),
+                        Text(sort,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_drop_down,
+                            color: Colors.grey.shade700),
                       ],
                     ),
                   ),
-                );
-              },
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemCount: categories.length,
+                ],
+              ),
             ),
-          ),
 
-          const SizedBox(height: 12),
+            const Divider(height: 1),
 
-          // LIST
-          Expanded(
-            child: filtered.isEmpty
-                ? Center(child: _emptyState())
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    itemCount: filtered.length,
-                    itemBuilder: (_, i) {
-                      final t = filtered[i];
-                      return _tile(t, settings);
-                    },
-                  ),
-          ),
-        ],
+            // LIST
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: list.isEmpty
+                    ? _emptyIllustration()
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        itemCount: list.length,
+                        itemBuilder: (_, i) =>
+                            _dismissibleTile(list[i], settings),
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _emptyState() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 36),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(color: Colors.purple.shade50, borderRadius: BorderRadius.circular(20)),
-            child: Icon(Icons.inbox, size: 64, color: primary.withOpacity(0.9)),
-          ),
-          const SizedBox(height: 18),
-          Text("Belum ada transaksi di sini", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade800)),
-          const SizedBox(height: 6),
-          Text("Gunakan tombol tambah untuk memasukkan transaksi pertama kamu", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade500)),
-        ],
-      ),
+  // CHIP
+  Widget _chip(String label, bool selected, VoidCallback onTap) {
+    final color = CategoryColors.getColor(
+      label == "Income"
+          ? "Gaji"
+          : label == "Expense"
+              ? "Belanja"
+              : "Lainnya",
     );
-  }
-
-  Widget _tile(TransactionModel t, SettingsProvider s) {
-    final amount = "${s.currencySymbol}${_fmt(t.amount)}";
-    final color = CategoryColors.getColor(t.category);
 
     return GestureDetector(
-      onTap: () => _openEditModal(t),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.all(12),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4))],
+          color: selected ? color : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.18),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
         ),
-        child: Row(
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // LIST EMPTY STATE
+  Widget _emptyIllustration() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 36),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(backgroundColor: color.withOpacity(0.14), child: Icon(t.isIncome ? Icons.arrow_downward : Icons.arrow_upward, color: color)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(t.note, style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-                Row(children: [
-                  Text(t.category, style: const TextStyle(fontSize: 12, color: Colors.black45)),
-                  const SizedBox(width: 8),
-                  Text(_niceDate(t.date), style: const TextStyle(fontSize: 12, color: Colors.black38)),
-                ]),
-              ]),
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                color: Colors.purple.shade50,
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: Icon(Icons.receipt_long,
+                  size: 68, color: primary.withOpacity(0.9)),
             ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(amount, style: TextStyle(fontWeight: FontWeight.w800, color: t.isIncome ? Colors.green : Colors.red)),
-                const SizedBox(height: 6),
-                InkWell(
-                  onTap: () => _confirmDelete(t),
-                  child: Icon(Icons.delete_outline, color: Colors.red.shade300),
-                ),
-              ],
+            const SizedBox(height: 18),
+            Text("Belum ada transaksi",
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700)),
+            const SizedBox(height: 8),
+            Text(
+              "Tambahkan transaksi pertama kamu untuk mulai mencatat pengeluaran & pemasukan.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _openAddModal,
+              child: const Text("Tambah Transaksi"),
             )
           ],
         ),
@@ -215,52 +293,134 @@ class _TransactionsListPageState extends State<TransactionsListPage> {
     );
   }
 
-  Future<void> _showCategoryPicker(BuildContext context, List<String> categories) async {
-    final chosen = await showModalBottomSheet<String>(
-      context: context,
-      builder: (_) {
-        return SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const SizedBox(height: 10),
-            const Text("Pilih Kategori", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-            const SizedBox(height: 8),
-            ...categories.map((c) => ListTile(title: Text(c), onTap: () => Navigator.pop(context, c))).toList(),
-            const SizedBox(height: 12),
-          ]),
-        );
+  // DISMISSIBLE (DELETE)
+  Widget _dismissibleTile(TransactionModel tx, SettingsProvider s) {
+    final accProvider = context.read<AccountProvider>();
+    return Dismissible(
+      key: ValueKey(tx.key),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(right: 20),
+        alignment: Alignment.centerRight,
+        decoration: BoxDecoration(
+          color: Colors.redAccent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      onDismissed: (_) async {
+        await context.read<TransactionProvider>().deleteTransaction(
+              tx.key as int,
+              accountProvider: accProvider, // REQUIRED
+            );
       },
+      child: GestureDetector(
+        onTap: () => _openEditModal(tx),
+        child: _buildTransactionTile(tx, s),
+      ),
     );
-
-    if (chosen != null) setState(() => selectedCategory = chosen);
-  }
-
-  void _confirmDelete(TransactionModel t) {
-    showDialog(context: context, builder: (_) {
-      return AlertDialog(
-        title: const Text("Hapus transaksi?"),
-        content: const Text("Transaksi akan dihapus permanen."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
-          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () {
-            context.read<TransactionProvider>().deleteTransaction(t.id);
-            Navigator.pop(context);
-          }, child: const Text("Hapus"))
-        ],
-      );
-    });
   }
 
   void _openEditModal(TransactionModel tx) {
-    showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true, builder: (_) => EditTransactionModal(tx: tx));
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => EditTransactionModal(tx: tx),
+    );
   }
 
-  String _fmt(double x) {
-    final s = x.abs().round().toString().split('').reversed.join();
-    final chunks = <String>[];
-    for (int i = 0; i < s.length; i += 3) {
-      chunks.add(s.substring(i, min(i + 3, s.length)));
+  void _openAddModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => const AddTransactionModal(),
+    );
+  }
+
+  // TILE UI
+  Widget _buildTransactionTile(TransactionModel tx, SettingsProvider s) {
+    final catColor = CategoryColors.getColor(tx.category);
+    final amountText = "${s.currencySymbol}${_format(tx.amount)}";
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: catColor.withOpacity(0.14),
+            child: Icon(
+              tx.isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+              color: catColor,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(tx.note,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 15)),
+              const SizedBox(height: 6),
+              Row(children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text(tx.category,
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.black54)),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _niceDate(tx.date),
+                  style: const TextStyle(fontSize: 12, color: Colors.black45),
+                ),
+              ])
+            ]),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            amountText,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: tx.isIncome ? Colors.green : Colors.red,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _format(double x) {
+    final s = x.round().toString().split('').reversed.join();
+    final parts = <String>[];
+    for (var i = 0; i < s.length; i += 3) {
+      parts.add(s.substring(i, min(i + 3, s.length)));
     }
-    return chunks.map((e) => e.split('').reversed.join()).toList().reversed.join('.');
+    return parts
+        .map((e) => e.split('').reversed.join())
+        .toList()
+        .reversed
+        .join('.');
   }
 
   String _niceDate(DateTime dt) {
@@ -268,7 +428,7 @@ class _TransactionsListPageState extends State<TransactionsListPage> {
     final diff = now.difference(dt).inDays;
     if (diff == 0) return "Hari ini";
     if (diff == 1) return "Kemarin";
-    if (diff < 7) return "${diff} hari lalu";
+    if (diff < 7) return "$diff hari lalu";
     return "${dt.day}/${dt.month}/${dt.year}";
   }
 }

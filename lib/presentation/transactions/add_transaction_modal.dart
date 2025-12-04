@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../data/models/transaction_model.dart';
 import '../../providers/transaction_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/account_provider.dart';
 import '../../themes/category_colors.dart';
 
 class AddTransactionModal extends StatefulWidget {
@@ -19,13 +20,18 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
   final TextEditingController noteController = TextEditingController();
 
   String selectedType = "Outcome"; // Income / Outcome
-  String selectedCategory = "Belanja";
+  String? selectedCategory;
+  String? selectedAccountId;
+
   DateTime selectedDate = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final categories = settings.categories;
+
+    final accProvider = context.watch<AccountProvider>();
+    final accounts = accProvider.accounts;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -109,11 +115,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                     ),
                   )
                   .toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedCategory = value!;
-                });
-              },
+              onChanged: (value) => setState(() => selectedCategory = value),
               decoration: InputDecoration(
                 labelText: "Kategori",
                 filled: true,
@@ -123,6 +125,44 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                   borderSide: BorderSide.none,
                 ),
               ),
+            ),
+
+            const SizedBox(height: 18),
+
+            /// ACCOUNT DROPDOWN (WITH BALANCE)
+            DropdownButtonFormField<String>(
+              value: selectedAccountId,
+              items: accounts.map((acc) {
+                final balance = _money(acc.balance, settings.currencySymbol);
+
+                return DropdownMenuItem(
+                  value: acc.key.toString(),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("${acc.name} (${acc.bank})"),
+                      Text(
+                        balance,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (v) => setState(() => selectedAccountId = v),
+              decoration: InputDecoration(
+                labelText: "Dari Akun / Dompet",
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              validator: (v) => v == null ? "Pilih akun" : null,
             ),
 
             const SizedBox(height: 18),
@@ -195,8 +235,11 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     );
   }
 
+  // =============================
+  // BUTTON TYPE PICKER
+  // =============================
   Widget _typeButton(String type) {
-    final bool active = selectedType == type;
+    final bool active = (selectedType == type);
 
     return Expanded(
       child: GestureDetector(
@@ -225,6 +268,9 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     );
   }
 
+  // =============================
+  // DATE PICKER
+  // =============================
   Future<void> _pickDate() async {
     final pick = await showDatePicker(
       context: context,
@@ -238,22 +284,44 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     }
   }
 
-  void _saveTransaction() {
-    if (amountController.text.isEmpty) return;
+  // =============================
+  // SAVE TRANSACTION
+  // =============================
+  void _saveTransaction() async {
+    if (amountController.text.isEmpty ||
+        selectedCategory == null ||
+        selectedAccountId == null) {
+      return;
+    }
 
     final amount = double.tryParse(amountController.text) ?? 0;
 
-    final tx = TransactionModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      note: noteController.text.isEmpty ? selectedCategory : noteController.text,
-      category: selectedCategory,
+    final newTx = TransactionModel(
+      note:
+          noteController.text.isEmpty ? selectedCategory! : noteController.text,
+      category: selectedCategory!,
       amount: amount,
-      isIncome: selectedType == "Income",
+      isIncome: (selectedType == "Income"),
       date: selectedDate,
+      accountId: int.parse(selectedAccountId!),
     );
 
-    context.read<TransactionProvider>().addTransaction(tx);
+    final txProvider = context.read<TransactionProvider>();
+    final accProvider = context.read<AccountProvider>();
+
+    await txProvider.addTransaction(
+      newTx,
+      accountProvider: accProvider,
+    );
 
     Navigator.pop(context);
+  }
+
+  // =============================
+  // MONEY FORMAT
+  // =============================
+  String _money(double amount, String symbol) {
+    final f = NumberFormat("#,###", "id_ID");
+    return "$symbol${f.format(amount)}";
   }
 }

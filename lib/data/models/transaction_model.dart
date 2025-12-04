@@ -2,32 +2,51 @@ import 'package:hive/hive.dart';
 
 part 'transaction_model.g.dart';
 
-@HiveType(typeId: 1)
+@HiveType(typeId: 0)
 class TransactionModel extends HiveObject {
   @HiveField(0)
-  String id;
+  final double amount;
 
   @HiveField(1)
-  String note;
+  final bool isIncome;
 
   @HiveField(2)
-  String category;
+  final String category;
 
   @HiveField(3)
-  double amount;
+  final String note;
 
   @HiveField(4)
-  bool isIncome;
+  final DateTime date;
 
+  /// NEW: Account ID (Hive key of AccountModel)
   @HiveField(5)
-  DateTime date;
+  final int accountId;
 
   TransactionModel({
-    required this.id,
-    required this.note,
-    required this.category,
     required this.amount,
     required this.isIncome,
+    required this.category,
+    required this.note,
     required this.date,
+    required this.accountId,
   });
+
+  TransactionModel copyWith({
+    double? amount,
+    bool? isIncome,
+    String? category,
+    String? note,
+    DateTime? date,
+    int? accountId,
+  }) {
+    return TransactionModel(
+      amount: amount ?? this.amount,
+      isIncome: isIncome ?? this.isIncome,
+      category: category ?? this.category,
+      note: note ?? this.note,
+      date: date ?? this.date,
+      accountId: accountId ?? this.accountId,
+    );
+  }
 }

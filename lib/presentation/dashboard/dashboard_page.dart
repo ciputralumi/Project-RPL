@@ -9,7 +9,7 @@ import '../../data/models/transaction_model.dart';
 import '../../providers/transaction_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../transactions/add_transaction_modal.dart';
-import '../transactions/transactions_list_page.dart';
+import '../transactions/transactions_page.dart';
 import '../../themes/category_colors.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -78,8 +78,7 @@ class _DashboardPageState extends State<DashboardPage>
           ifAbsent: () => t.amount);
     }
 
-    final totalForPie =
-        categoryTotals.values.fold<double>(0, (a, b) => a + b);
+    final totalForPie = categoryTotals.values.fold<double>(0, (a, b) => a + b);
 
     final segments = categoryTotals.entries
         .map((e) => _PieSegment(label: e.key, value: e.value))
@@ -87,7 +86,6 @@ class _DashboardPageState extends State<DashboardPage>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F8),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2F4CFF),
         child: const Icon(Icons.add, size: 28),
@@ -100,12 +98,10 @@ class _DashboardPageState extends State<DashboardPage>
           );
         },
       ),
-
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(balance, income, expense, s),
-
             Expanded(
               child: SingleChildScrollView(
                 padding:
@@ -115,39 +111,29 @@ class _DashboardPageState extends State<DashboardPage>
                   children: [
                     _buildPeriodChips(tx),
                     const SizedBox(height: 14),
-
                     _buildSmartSummary(context, tx, s),
                     const SizedBox(height: 14),
-
                     _buildSummaryCards(income, expense, s),
                     const SizedBox(height: 14),
-
                     AnimatedBuilder(
                       animation: _donutController,
                       builder: (_, __) => Opacity(
                         opacity: _donutController.value,
                         child: Transform.translate(
-                          offset: Offset(
-                              0, (1 - _donutController.value) * 10),
+                          offset: Offset(0, (1 - _donutController.value) * 10),
                           child: _buildAnalyticsCard(
                               segments, totalForPie, _donutController.value),
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 14),
-
                     _buildGoalsCard(),
                     const SizedBox(height: 14),
-
                     _buildAccountsCard(),
                     const SizedBox(height: 14),
-
                     _buildTransactionsHeader(),
                     const SizedBox(height: 8),
-
                     _buildAnimatedPreview(transactions, s),
-
                     const SizedBox(height: 80),
                   ],
                 ),
@@ -173,8 +159,7 @@ class _DashboardPageState extends State<DashboardPage>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius:
-            const BorderRadius.vertical(bottom: Radius.circular(28)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.10),
@@ -183,7 +168,6 @@ class _DashboardPageState extends State<DashboardPage>
           )
         ],
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -195,7 +179,6 @@ class _DashboardPageState extends State<DashboardPage>
                 "Total Saldo",
                 style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
-
               Row(
                 children: [
                   IconButton(
@@ -212,13 +195,11 @@ class _DashboardPageState extends State<DashboardPage>
                       color: Colors.white,
                     ),
                   ),
-
                   IconButton(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) => const SettingsPage()),
+                        MaterialPageRoute(builder: (_) => const SettingsPage()),
                       );
                     },
                     icon: const Icon(
@@ -236,9 +217,7 @@ class _DashboardPageState extends State<DashboardPage>
           Text(
             "${s.currencySymbol}${_fmt(balance)}",
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold),
+                color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
           ),
 
           const SizedBox(height: 20),
@@ -310,24 +289,20 @@ class _DashboardPageState extends State<DashboardPage>
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: selected ? Colors.white : Colors.transparent,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: selected
-                      ? Colors.transparent
-                      : const Color(0xFFE8E8F0),
+                  color:
+                      selected ? Colors.transparent : const Color(0xFFE8E8F0),
                 ),
               ),
               child: Center(
                 child: Text(
                   periods[i],
                   style: TextStyle(
-                    color: selected
-                        ? const Color(0xFF2F4CFF)
-                        : Colors.black87,
+                    color: selected ? const Color(0xFF2F4CFF) : Colors.black87,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -406,7 +381,6 @@ class _DashboardPageState extends State<DashboardPage>
           )
         ],
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -417,17 +391,12 @@ class _DashboardPageState extends State<DashboardPage>
               fontSize: 16,
             ),
           ),
-
           const SizedBox(height: 12),
-
           Text(
             insight,
-            style:
-                const TextStyle(color: Colors.black87, height: 1.4),
+            style: const TextStyle(color: Colors.black87, height: 1.4),
           ),
-
           const SizedBox(height: 14),
-
           Row(
             children: [
               Expanded(
@@ -447,9 +416,7 @@ class _DashboardPageState extends State<DashboardPage>
               ),
             ],
           ),
-
           const SizedBox(height: 14),
-
           if (topCategory != "-")
             _summaryTile(
               "Kategori Tertinggi",
@@ -491,8 +458,7 @@ class _DashboardPageState extends State<DashboardPage>
   // SUMMARY CARDS
   // -------------------------------------------------------------------
 
-  Widget _buildSummaryCards(
-      double income, double expense, SettingsProvider s) {
+  Widget _buildSummaryCards(double income, double expense, SettingsProvider s) {
     return Row(
       children: [
         Expanded(
@@ -517,9 +483,7 @@ class _DashboardPageState extends State<DashboardPage>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            boxShadow: const [
-              BoxShadow(color: Colors.black12, blurRadius: 8)
-            ],
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -527,15 +491,13 @@ class _DashboardPageState extends State<DashboardPage>
               const Text(
                 "Balance",
                 style: TextStyle(
-                    color: Color(0xFF2F4CFF),
-                    fontWeight: FontWeight.w700),
+                    color: Color(0xFF2F4CFF), fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
               Text(
                 _fmt(income - expense),
                 style: const TextStyle(
-                    color: Color(0xFF2F4CFF),
-                    fontWeight: FontWeight.bold),
+                    color: Color(0xFF2F4CFF), fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -559,8 +521,7 @@ class _DashboardPageState extends State<DashboardPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style:
-                  const TextStyle(fontSize: 12, color: Colors.black54)),
+              style: const TextStyle(fontSize: 12, color: Colors.black54)),
           const Spacer(),
           Text(
             amount,
@@ -590,7 +551,6 @@ class _DashboardPageState extends State<DashboardPage>
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
         ],
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -599,7 +559,6 @@ class _DashboardPageState extends State<DashboardPage>
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
-
           if (segments.isEmpty || total == 0)
             const _ShimmerPlaceholder(count: 3)
           else
@@ -656,7 +615,6 @@ class _DashboardPageState extends State<DashboardPage>
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
         ],
       ),
-
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -679,7 +637,6 @@ class _DashboardPageState extends State<DashboardPage>
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
         ],
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -703,23 +660,18 @@ class _DashboardPageState extends State<DashboardPage>
               color: Color(0xFF2F4CFF)),
         ),
         const SizedBox(width: 12),
-
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
               Text(subtitle,
-                  style: const TextStyle(
-                      fontSize: 12, color: Colors.black45)),
+                  style: const TextStyle(fontSize: 12, color: Colors.black45)),
             ],
           ),
         ),
-
-        Text(amount,
-            style: const TextStyle(fontWeight: FontWeight.w700)),
+        Text(amount, style: const TextStyle(fontWeight: FontWeight.w700)),
       ],
     );
   }
@@ -738,8 +690,7 @@ class _DashboardPageState extends State<DashboardPage>
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (_) => const TransactionsListPage()),
+              MaterialPageRoute(builder: (_) => const TransactionsPage()),
             );
           },
           child: const Text("Lihat Semua"),
@@ -800,7 +751,6 @@ class _DashboardPageState extends State<DashboardPage>
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)
         ],
       ),
-
       child: Row(
         children: [
           CircleAvatar(
@@ -811,7 +761,6 @@ class _DashboardPageState extends State<DashboardPage>
             ),
           ),
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -825,7 +774,6 @@ class _DashboardPageState extends State<DashboardPage>
               ],
             ),
           ),
-
           Text(
             "${s.currencySymbol}${_fmt(tx.amount)}",
             style: TextStyle(
@@ -923,9 +871,7 @@ class _AnimatedDonut extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: SweepGradient(
-              colors: colors.isEmpty
-                  ? [Colors.grey.shade300]
-                  : colors,
+              colors: colors.isEmpty ? [Colors.grey.shade300] : colors,
               stops: stops.isEmpty ? null : stops,
               startAngle: -pi / 2,
               endAngle: -pi / 2 + 2 * pi * animValue,

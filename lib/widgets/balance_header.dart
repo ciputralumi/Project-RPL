@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../themes/app_theme.dart';
 
 class BalanceHeader extends StatelessWidget {
   const BalanceHeader({super.key});
