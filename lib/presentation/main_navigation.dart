@@ -4,6 +4,7 @@ import 'dashboard/dashboard_page.dart';
 import 'transactions/transactions_page.dart';
 import 'budget/budget_page.dart';
 import 'analytic/analytics_page.dart';
+import 'accounts/account_page.dart';
 import 'settings/settings_page.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -21,7 +22,7 @@ class _MainNavigationState extends State<MainNavigation> {
     TransactionsPage(),
     BudgetPage(),
     AnalyticsPage(),
-    SettingsPage(),
+    AccountsPage(),
   ];
 
   @override
@@ -54,8 +55,8 @@ class _MainNavigationState extends State<MainNavigation> {
               label: "Analitik",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: "Settings",
+              icon: Icon(Icons.account_balance_wallet), // ⬅️ akun
+              label: "Akun",
             ),
           ],
         ),
