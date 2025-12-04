@@ -70,58 +70,132 @@ class TransactionProvider extends ChangeNotifier {
   // ADD TRANSACTION ✓ AUTO APPLY BALANCE
   // -------------------------------------------------------------
   Future<void> addTransaction(
-  TransactionModel tx, {
-  required AccountProvider accountProvider,
-}) async {
-  // Simpan ke Hive → dapat hiveKey
-  final hiveKey = await _box.add(tx);
+    TransactionModel tx, {
+    required AccountProvider accountProvider,
+  }) async {
+    // Simpan ke Hive → dapat hiveKey
+    final hiveKey = await _box.add(tx);
 
-  // Jangan set tx.key, biarkan Hive yang handle
+    // Jangan set tx.key, biarkan Hive yang handle
 
-  await accountProvider.applyTransaction(tx);
+    await accountProvider.applyTransaction(tx);
 
-  notifyListeners();
-}
-
+    notifyListeners();
+  }
 
   // -------------------------------------------------------------
   // DELETE TRANSACTION ✓ AUTO REVERT BALANCE
   // -------------------------------------------------------------
   Future<void> deleteTransaction(
-  int key, {
-  required AccountProvider accountProvider,
-}) async {
-  final tx = _box.get(key);
-  if (tx == null) return;
+    int key, {
+    required AccountProvider accountProvider,
+  }) async {
+    final tx = _box.get(key);
+    if (tx == null) return;
 
-  await accountProvider.revertTransaction(tx);
+    await accountProvider.revertTransaction(tx);
 
-  await _box.delete(key);
+    await _box.delete(key);
 
-  notifyListeners();
-}
-
+    notifyListeners();
+  }
 
   // -------------------------------------------------------------
   // UPDATE TRANSACTION ✓ AUTO ADJUST ACCOUNT BALANCE
   // -------------------------------------------------------------
   Future<void> updateTransaction(
-  int key,
-  TransactionModel newTx, {
-  required AccountProvider accountProvider,
-  required TransactionModel oldTx,
-}) async {
+    int key,
+    TransactionModel newTx, {
+    required AccountProvider accountProvider,
+    required TransactionModel oldTx,
+  }) async {
+    await accountProvider.updateTransaction(
+      oldTx: oldTx,
+      newTx: newTx,
+    );
 
-  await accountProvider.updateTransaction(
-    oldTx: oldTx,
-    newTx: newTx,
-  );
+    await _box.put(key, newTx);
 
-  await _box.put(key, newTx);
+    notifyListeners();
+  }
 
-  notifyListeners();
-}
+  Future<void> undoTransfer({
+    required String groupId,
+    required AccountProvider accountProvider,
+  }) async {
+    // Ambil dua transaksi yang termasuk dalam transfer group
+    final matches =
+        _box.values.where((t) => t.transferGroupId == groupId).toList();
 
+    // Transfer valid harus ada tepat 2 transaksi
+    if (matches.length != 2) return;
+
+    for (final tx in matches) {
+      final key = tx.key as int;
+
+      // kembalikan saldo akun
+      await accountProvider.revertTransaction(tx);
+
+      // hapus dari Hive
+      await _box.delete(key);
+    }
+
+    // Tidak ada _transactions → langsung notifyListeners
+    notifyListeners();
+  }
+
+// =======================================================
+// UPDATE TRANSFER GROUP
+// =======================================================
+  Future<void> updateTransferGroup({
+    required String transferGroupId, // <-- ganti int → String
+    required TransactionModel oldOutTx,
+    required TransactionModel oldInTx,
+    required double newAmount,
+    required int newFromId,
+    required int newToId,
+    required String newNote,
+    required DateTime newDate,
+    required AccountProvider accountProvider,
+  }) async {
+    // Step 1 — Undo dua transaksi lama
+    await accountProvider.revertTransaction(oldOutTx);
+    await accountProvider.revertTransaction(oldInTx);
+
+    // Step 2 — Create transaksi baru OUT
+    final newOutTx = TransactionModel(
+      amount: newAmount,
+      isIncome: false,
+      category: "Transfer Out",
+      note: newNote,
+      date: newDate,
+      accountId: newFromId,
+      transferGroupId: transferGroupId, // now String
+    );
+
+    // Step 3 — Create transaksi baru IN
+    final newInTx = TransactionModel(
+      amount: newAmount,
+      isIncome: true,
+      category: "Transfer In",
+      note: newNote,
+      date: newDate,
+      accountId: newToId,
+      transferGroupId: transferGroupId, // now String
+    );
+
+    // Replace OUT
+    await _box.put(oldOutTx.key, newOutTx);
+
+    // Replace IN
+    await _box.put(oldInTx.key, newInTx);
+
+    // Apply saldo
+    await accountProvider.applyTransaction(newOutTx);
+    await accountProvider.applyTransaction(newInTx);
+
+    notifyListeners();
+  }
 
   // -------------------------------------------------------------
   // ANALYTICS (unchanged)

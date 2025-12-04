@@ -25,7 +25,30 @@ class TransactionDetailPage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
-          // EDIT BUTTON
+          // =============================
+          // ⟳ UNDO TRANSFER (JIKA ADA)
+          // =============================
+          if (tx.transferGroupId != null)
+            IconButton(
+              icon: const Icon(Icons.undo),
+              onPressed: () async {
+                final confirm = await _confirmUndo(context);
+                if (confirm == true) {
+                  final txProv = context.read<TransactionProvider>();
+                  final accProv = context.read<AccountProvider>();
+
+                  // Undo kedua transaksi
+                  await txProv.undoTransfer(
+                    groupId: tx.transferGroupId!,
+                    accountProvider: accProv,
+                  );
+
+                  Navigator.pop(context);
+                }
+              },
+            ),
+
+          // EDIT
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
@@ -38,31 +61,39 @@ class TransactionDetailPage extends StatelessWidget {
             },
           ),
 
-          // DELETE BUTTON
+          // DELETE
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () async {
+              // Tidak izinkan delete transaksi transfer secara individual!!!
+              if (tx.transferGroupId != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content:
+                        Text("Gunakan tombol Undo untuk membatalkan transfer."),
+                  ),
+                );
+                return;
+              }
+
               final confirm = await _confirmDelete(context);
               if (confirm == true) {
-                final txProvider = context.read<TransactionProvider>();
-                final accProvider = context.read<AccountProvider>();
+                final txProv = context.read<TransactionProvider>();
+                final accProv = context.read<AccountProvider>();
 
                 final hiveKey = tx.key as int;
 
-                // HAPUS TRANSAKSI (AUTO REVERT SALDO)
-                await txProvider.deleteTransaction(
+                await txProv.deleteTransaction(
                   hiveKey,
-                  accountProvider: accProvider,
+                  accountProvider: accProv,
                 );
 
-                Navigator.pop(context); // keluar dari detail page
+                Navigator.pop(context);
               }
             },
           ),
         ],
       ),
-
-      // BODY
       body: Padding(
         padding: const EdgeInsets.all(22),
         child: Column(
@@ -75,6 +106,8 @@ class TransactionDetailPage extends StatelessWidget {
             _infoRow("Jenis", tx.isIncome ? "Pemasukan" : "Pengeluaran"),
             _infoRow("Tanggal", _fmtDate(tx.date)),
             _infoRow("Akun", "ID: ${tx.accountId}"),
+            if (tx.transferGroupId != null)
+              _infoRow("Transfer ID", tx.transferGroupId!),
             const Spacer(),
           ],
         ),
@@ -83,7 +116,7 @@ class TransactionDetailPage extends StatelessWidget {
   }
 
   // =======================================================
-  // HEADER CARD
+  // HEADER (Jumlah)
   // =======================================================
   Widget _header(Color catColor, SettingsProvider s) {
     final amount = "${s.currencySymbol}${_format(tx.amount)}";
@@ -120,7 +153,7 @@ class TransactionDetailPage extends StatelessWidget {
   }
 
   // =======================================================
-  // INFO ROW
+  // ITEM INFO
   // =======================================================
   Widget _infoRow(String title, String value) {
     return Padding(
@@ -129,7 +162,7 @@ class TransactionDetailPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-              width: 100,
+              width: 110,
               child: Text(
                 title,
                 style: const TextStyle(
@@ -163,7 +196,7 @@ class TransactionDetailPage extends StatelessWidget {
   }
 
   // =======================================================
-  // CONFIRM DELETE DIALOG
+  // DIALOG DELETE
   // =======================================================
   Future<bool?> _confirmDelete(BuildContext context) {
     return showDialog<bool>(
@@ -181,6 +214,32 @@ class TransactionDetailPage extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Hapus"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =======================================================
+  // DIALOG UNDO TRANSFER
+  // =======================================================
+  Future<bool?> _confirmUndo(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text("Batalkan Transfer?"),
+        content: const Text(
+            "Dua transaksi transfer akan dihapus dan saldo akun akan dikembalikan."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Batalkan"),
           ),
         ],
       ),

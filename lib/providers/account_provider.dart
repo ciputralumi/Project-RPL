@@ -55,7 +55,6 @@ class AccountProvider extends ChangeNotifier {
   // AUTO BALANCE SYNC WITH TRANSACTIONS
   // -------------------------------------------------------
 
-  /// Dipanggil ketika transaksi BARU ditambahkan
   Future<void> applyTransaction(TransactionModel tx) async {
     final acc = getByKey(tx.accountId);
     if (acc == null) return;
@@ -70,14 +69,13 @@ class AccountProvider extends ChangeNotifier {
 
     final updated = AccountModel(
       name: acc.name,
-      bank: acc.bank, // FIXED
+      bank: acc.bank,
       balance: newBalance,
     );
 
     await updateAccount(tx.accountId, updated);
   }
 
-  /// Dipanggil saat transaksi DIHAPUS → kembalikan nilai sebelumnya
   Future<void> revertTransaction(TransactionModel tx) async {
     final acc = getByKey(tx.accountId);
     if (acc == null) return;
@@ -92,23 +90,59 @@ class AccountProvider extends ChangeNotifier {
 
     final updated = AccountModel(
       name: acc.name,
-      bank: acc.bank, // FIXED
+      bank: acc.bank,
       balance: newBalance,
     );
 
     await updateAccount(tx.accountId, updated);
   }
 
-  /// Dipanggil saat transaksi DI-EDIT
   Future<void> updateTransaction({
     required TransactionModel oldTx,
     required TransactionModel newTx,
   }) async {
-    // Step 1 — undo saldo transaksi lama
     await revertTransaction(oldTx);
-
-    // Step 2 — apply transaksi baru
     await applyTransaction(newTx);
+    notifyListeners();
+  }
+
+  // =============================================================
+  // TRANSFER ANTAR AKUN — SUDAH DI DALAM CLASS (FIX)
+  // =============================================================
+  Future<void> transfer({
+    required int fromId,
+    required int toId,
+    required double amount,
+  }) async {
+    if (fromId == toId) return;
+
+    final accFrom = getByKey(fromId);
+    final accTo = getByKey(toId);
+
+    if (accFrom == null || accTo == null) return;
+
+    final newFromBalance = accFrom.balance - amount;
+    final newToBalance = accTo.balance + amount;
+
+    // Update akun asal
+    await updateAccount(
+      fromId,
+      AccountModel(
+        name: accFrom.name,
+        bank: accFrom.bank,
+        balance: newFromBalance,
+      ),
+    );
+
+    // Update akun tujuan
+    await updateAccount(
+      toId,
+      AccountModel(
+        name: accTo.name,
+        bank: accTo.bank,
+        balance: newToBalance,
+      ),
+    );
 
     notifyListeners();
   }

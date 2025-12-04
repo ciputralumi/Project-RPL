@@ -19,9 +19,13 @@ class TransactionModel extends HiveObject {
   @HiveField(4)
   final DateTime date;
 
-  /// NEW: Account ID (Hive key of AccountModel)
+  /// Account ID (Hive key of AccountModel)
   @HiveField(5)
   final int accountId;
+
+  /// NEW: Id unik untuk transfer (menghubungkan Transfer Out & Transfer In)
+  @HiveField(6)
+  final String? transferGroupId;
 
   TransactionModel({
     required this.amount,
@@ -30,6 +34,7 @@ class TransactionModel extends HiveObject {
     required this.note,
     required this.date,
     required this.accountId,
+    this.transferGroupId,
   });
 
   TransactionModel copyWith({
@@ -39,6 +44,7 @@ class TransactionModel extends HiveObject {
     String? note,
     DateTime? date,
     int? accountId,
+    String? transferGroupId,
   }) {
     return TransactionModel(
       amount: amount ?? this.amount,
@@ -47,6 +53,7 @@ class TransactionModel extends HiveObject {
       note: note ?? this.note,
       date: date ?? this.date,
       accountId: accountId ?? this.accountId,
+      transferGroupId: transferGroupId ?? this.transferGroupId,
     );
   }
 }
