@@ -113,7 +113,7 @@ class _DashboardPageState extends State<DashboardPage>
                     const SizedBox(height: 14),
                     _buildSmartSummary(context, tx, s),
                     const SizedBox(height: 14),
-                    _buildSummaryCards(income, expense, s),
+                    _buildSummaryCards(income, expense, balance, s),
                     const SizedBox(height: 14),
                     AnimatedBuilder(
                       animation: _donutController,
@@ -122,7 +122,7 @@ class _DashboardPageState extends State<DashboardPage>
                         child: Transform.translate(
                           offset: Offset(0, (1 - _donutController.value) * 10),
                           child: _buildAnalyticsCard(
-                              segments, totalForPie, _donutController.value),
+                              segments, totalForPie, _donutController.value, s),
                         ),
                       ),
                     ),
@@ -215,7 +215,7 @@ class _DashboardPageState extends State<DashboardPage>
           const SizedBox(height: 10),
 
           Text(
-            "${s.currencySymbol}${_fmt(balance)}",
+            "${s.currencySymbol}${_fmt(s.convert(balance))}",
             style: const TextStyle(
                 color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
           ),
@@ -225,11 +225,11 @@ class _DashboardPageState extends State<DashboardPage>
           Row(
             children: [
               Expanded(
-                child: _miniStatCard("Pemasukan", income, Colors.green),
+                child: _miniStatCard("Pemasukan", s.convert(income), Colors.green),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _miniStatCard("Pengeluaran", expense, Colors.red),
+                child: _miniStatCard("Pengeluaran", s.convert(expense), Colors.red),
               ),
             ],
           )
@@ -458,13 +458,18 @@ class _DashboardPageState extends State<DashboardPage>
   // SUMMARY CARDS
   // -------------------------------------------------------------------
 
-  Widget _buildSummaryCards(double income, double expense, SettingsProvider s) {
+  Widget _buildSummaryCards(
+    double income,
+    double expense,
+    double balance,
+    SettingsProvider s,
+  ){
     return Row(
       children: [
         Expanded(
           child: _smallCard(
             "Income",
-            "${s.currencySymbol}${_fmt(income)}",
+            "${s.currencySymbol}${_fmt(s.convert(income))}",
             const Color(0xFF2ECC71),
           ),
         ),
@@ -472,7 +477,7 @@ class _DashboardPageState extends State<DashboardPage>
         Expanded(
           child: _smallCard(
             "Expense",
-            "${s.currencySymbol}${_fmt(expense)}",
+            "${s.currencySymbol}${_fmt(s.convert(expense))}",
             const Color(0xFFFF6B6B),
           ),
         ),
@@ -495,7 +500,7 @@ class _DashboardPageState extends State<DashboardPage>
               ),
               const SizedBox(height: 6),
               Text(
-                _fmt(income - expense),
+                _fmt(s.convert(balance)),
                 style: const TextStyle(
                     color: Color(0xFF2F4CFF), fontWeight: FontWeight.bold),
               ),
@@ -541,65 +546,101 @@ class _DashboardPageState extends State<DashboardPage>
   // -------------------------------------------------------------------
 
   Widget _buildAnalyticsCard(
-      List<_PieSegment> segments, double total, double animValue) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Pengeluaran per Kategori",
-            style: TextStyle(fontWeight: FontWeight.w600),
+  List<_PieSegment> segments,
+  double total,
+  double animValue,
+  SettingsProvider s,
+) {
+  return Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Pengeluaran per Kategori",
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
           ),
-          const SizedBox(height: 12),
-          if (segments.isEmpty || total == 0)
-            const _ShimmerPlaceholder(count: 3)
-          else
-            Row(
-              children: [
-                _AnimatedDonut(segments, total, animValue: animValue),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: segments.map((s) {
-                      final c = CategoryColors.getColor(s.label);
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: c,
-                                borderRadius: BorderRadius.circular(3),
+        ),
+        const SizedBox(height: 16),
+
+        if (segments.isEmpty || total == 0)
+          const _ShimmerPlaceholder(count: 3)
+        else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _AnimatedDonut(
+                segments,
+                total,
+                animValue: animValue,
+                conversionRate: s.currencyFormat == 0 ? 1.0 : 0.000065,  
+                currencySymbol: s.currencySymbol,
+              ),
+
+              const SizedBox(width: 20),
+
+              Expanded(
+                child: Column(
+                  children: segments.map((seg) {
+                    final color = CategoryColors.getColor(seg.label);
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          Expanded(
+                            child: Text(
+                              seg.label,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                                child: Text(s.label,
-                                    overflow: TextOverflow.ellipsis)),
-                            Text(_short(s.value)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                          ),
+
+                          Text(
+                            "${s.currencySymbol}${_fmt(s.convert(seg.value))}",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
-              ],
-            )
-        ],
-      ),
-    );
-  }
+              )
+            ],
+          )
+      ],
+    ),
+  );
+}
+
 
   // -------------------------------------------------------------------
   // GOALS & ACCOUNTS
@@ -775,7 +816,7 @@ class _DashboardPageState extends State<DashboardPage>
             ),
           ),
           Text(
-            "${s.currencySymbol}${_fmt(tx.amount)}",
+            "${s.currencySymbol}${_fmt(s.convert(tx.amount))}",
             style: TextStyle(
               color: tx.isIncome ? Colors.green : Colors.red,
               fontWeight: FontWeight.w700,
@@ -836,68 +877,78 @@ class _AnimatedDonut extends StatelessWidget {
   final List<_PieSegment> segments;
   final double total;
   final double animValue;
+  final double conversionRate;
+  final String currencySymbol;
 
   const _AnimatedDonut(
     this.segments,
     this.total, {
     super.key,
     required this.animValue,
+    required this.conversionRate,
+    required this.currencySymbol,
   });
 
   @override
   Widget build(BuildContext context) {
     final stops = <double>[];
     final colors = <Color>[];
-
+    
     double acc = 0;
 
     for (final seg in segments) {
-      final portion = (seg.value / total).clamp(0.0, 1.0) * animValue;
+      final portion = (seg.value / total) * animValue;
       acc += portion;
       stops.add(acc);
       colors.add(CategoryColors.getColor(seg.label));
     }
 
     if (stops.isNotEmpty) {
-      stops.last = animValue.clamp(0.0, 1.0);
+      stops[stops.length - 1] = animValue;
     }
+
+    final double donutSize = 135;
 
     return Stack(
       alignment: Alignment.center,
       children: [
         Container(
-          width: 120,
-          height: 120,
+          width: donutSize,
+          height: donutSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: SweepGradient(
               colors: colors.isEmpty ? [Colors.grey.shade300] : colors,
-              stops: stops.isEmpty ? null : stops,
+              stops: stops,
               startAngle: -pi / 2,
               endAngle: -pi / 2 + 2 * pi * animValue,
             ),
           ),
         ),
 
-        // Inner white circle
+        // Center hole
         Container(
-          width: 68,
-          height: 68,
+          width: donutSize * 0.58,
+          height: donutSize * 0.58,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 6,
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 10,
               ),
             ],
           ),
           child: Center(
             child: Text(
-              "Total\n${_centerTotal()}",
+              "${currencySymbol}${_formatCenter()}",
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                height: 1.3,
+              ),
             ),
           ),
         ),
@@ -905,13 +956,20 @@ class _AnimatedDonut extends StatelessWidget {
     );
   }
 
-  String _centerTotal() {
-    final t = segments.fold(0.0, (a, b) => a + b.value);
-    if (t >= 1000000) return "${(t / 1000000).toStringAsFixed(1)}M";
-    if (t >= 1000) return "${(t / 1000).toStringAsFixed(1)}K";
-    return t.toStringAsFixed(0);
+  String _formatCenter() {
+    final convertedTotal = total * conversionRate;
+
+    if (convertedTotal >= 1000000) {
+      return "${(convertedTotal / 1000000).toStringAsFixed(1)}M";
+    }
+    if (convertedTotal >= 1000) {
+      return "${(convertedTotal / 1000).toStringAsFixed(1)}K";
+    }
+
+    return convertedTotal.toStringAsFixed(0);
   }
 }
+
 
 // -------------------------------------------------------------------
 // SHIMMER PLACEHOLDER (SKELETON LOADING)

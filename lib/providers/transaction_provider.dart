@@ -64,7 +64,11 @@ class TransactionProvider extends ChangeNotifier {
       .where((e) => !e.isIncome)
       .fold(0.0, (a, b) => a + b.amount);
 
-  double get totalBalance => totalIncome - totalExpense;
+  double get totalBalance {
+    final bal = totalIncome - totalExpense;
+    return bal < 0 ? 0 : bal;
+  }
+
 
   // -------------------------------------------------------------
   // ADD TRANSACTION ✓ AUTO APPLY BALANCE
