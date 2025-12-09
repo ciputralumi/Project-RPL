@@ -9,20 +9,25 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  final String _fixerAccessKey = dotenv.env['FIXER_ACCESS_KEY']!;
+  late final String _fixerAccessKey;
   final Box settingsBox = Hive.box('settings');
   final Box<TransactionModel> transactionBox =
       Hive.box<TransactionModel>('transactions');
-  
-  final Box <AccountModel> accountBox  = 
-      Hive.box<AccountModel>('accounts_box');
 
-  final Box <BudgetModel> budgetBox =
-      Hive.box<BudgetModel>('budgets_box');
+  final Box<AccountModel> accountBox = Hive.box<AccountModel>('accounts_box');
 
-  double _usdRate = 15700; 
+  final Box<BudgetModel> budgetBox = Hive.box<BudgetModel>('budgets_box');
+
+  SettingsProvider() {
+    try {
+      _fixerAccessKey = dotenv.env['FIXER_ACCESS_KEY'] ?? '';
+    } catch (e) {
+      _fixerAccessKey = '';
+    }
+  }
+
+  double _usdRate = 15700;
   double get usdRate => _usdRate;
-
 
   // ============================
   // DARK MODE
@@ -38,8 +43,7 @@ class SettingsProvider extends ChangeNotifier {
   // CURRENCY
   // 0 = Rp, 1 = USD
   // ============================
-  int get currencyFormat =>
-      settingsBox.get('currencyFormat', defaultValue: 0);
+  int get currencyFormat => settingsBox.get('currencyFormat', defaultValue: 0);
 
   void toggleCurrencyFormat(int value) {
     settingsBox.put('currencyFormat', value);
@@ -59,61 +63,64 @@ class SettingsProvider extends ChangeNotifier {
   // FETCH API & CONVERT FUNCTION
   // ============================
   Future<void> fetchUsdRate() async {
-        final connectivityResult = await (Connectivity().checkConnectivity());
+    final connectivityResult = await (Connectivity().checkConnectivity());
 
-        if (connectivityResult == ConnectivityResult.none) {
-            print("Perangkat OFFLINE. Menggunakan nilai tukar fallback: $_usdRate");
-            return; 
-        }
-        
-        final String apiUrl = 
-            "http://data.fixer.io/api/latest?access_key=$_fixerAccessKey&symbols=IDR,USD";
+    if (connectivityResult == ConnectivityResult.none) {
+      print("Perangkat OFFLINE. Menggunakan nilai tukar fallback: $_usdRate");
+      return;
+    }
 
-        try {
-            print("Perangkat ONLINE. Mencoba fetch dari Fixer.io...");
-            final response = await http.get(Uri.parse(apiUrl));
-            
-            if (response.statusCode == 200) {
-                final data = json.decode(response.body);
-                
-                if (data['success'] == true) {
-                    final rates = data['rates'];
-                    
-                    final double eurToIdr = (rates['IDR'] as num).toDouble();
-                    final double eurToUsd = (rates['USD'] as num).toDouble();
-                    
-                    final double calculatedUsdToIdr = eurToIdr / eurToUsd;
-                    
-                    if (calculatedUsdToIdr > 0) {
-                        _usdRate = calculatedUsdToIdr; 
-                        notifyListeners(); 
-                        print("Fixer Rate BERHASIL Diperbarui: 1 USD = $_usdRate IDR");
-                    }
-                } else {
-                    print("Fixer API Error: ${data['error']['info']}. Menggunakan fallback.");
-                }
-            } else {
-                print("Gagal terhubung ke Fixer. Status: ${response.statusCode}. Menggunakan fallback.");
-            }
-        } catch (e) {
-            print("Error saat fetch data Fixer: $e. Menggunakan fallback.");
+    final String apiUrl =
+        "http://data.fixer.io/api/latest?access_key=$_fixerAccessKey&symbols=IDR,USD";
+
+    try {
+      print("Perangkat ONLINE. Mencoba fetch dari Fixer.io...");
+      final response = await http.get(Uri.parse(apiUrl));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['success'] == true) {
+          final rates = data['rates'];
+
+          final double eurToIdr = (rates['IDR'] as num).toDouble();
+          final double eurToUsd = (rates['USD'] as num).toDouble();
+
+          final double calculatedUsdToIdr = eurToIdr / eurToUsd;
+
+          if (calculatedUsdToIdr > 0) {
+            _usdRate = calculatedUsdToIdr;
+            notifyListeners();
+            print("Fixer Rate BERHASIL Diperbarui: 1 USD = $_usdRate IDR");
+          }
+        } else {
+          print(
+              "Fixer API Error: ${data['error']['info']}. Menggunakan fallback.");
         }
+      } else {
+        print(
+            "Gagal terhubung ke Fixer. Status: ${response.statusCode}. Menggunakan fallback.");
+      }
+    } catch (e) {
+      print("Error saat fetch data Fixer: $e. Menggunakan fallback.");
     }
-    
-    // Fungsi konversi
-    double convert(double amount) {
-        if (currencyFormat == 0) return amount; 
-        
-        return amount / _usdRate;
-    }
-    double unconvert(double amount) {
+  }
+
+  // Fungsi konversi
+  double convert(double amount) {
+    if (currencyFormat == 0) return amount;
+
+    return amount / _usdRate;
+  }
+
+  double unconvert(double amount) {
     // Jika mata uangnya Rupiah (0), tidak perlu konversi.
-    if (currencyFormat == 0) return amount; 
+    if (currencyFormat == 0) return amount;
 
     // Jika mata uangnya USD (1), kalikan dengan _usdRate
     // Jumlah yang Disimpan = Jumlah Input * Nilai Tukar
-    return amount * _usdRate; 
-    }
+    return amount * _usdRate;
+  }
 
   // ============================
   // RESET TRANSAKSI
@@ -122,7 +129,7 @@ class SettingsProvider extends ChangeNotifier {
     await transactionBox.clear();
     notifyListeners();
   }
-  
+
   Future<void> clearAllAccounts() async {
     await accountBox.clear();
     notifyListeners();

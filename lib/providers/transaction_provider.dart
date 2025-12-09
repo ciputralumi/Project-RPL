@@ -6,7 +6,6 @@ import '../providers/account_provider.dart';
 
 class TransactionProvider extends ChangeNotifier {
   final Box<TransactionModel> _box = Hive.box<TransactionModel>('transactions');
-  
 
   // Filter: 0 = Daily, 1 = Weekly, 2 = Monthly, 3 = Annual
   int filterIndex = 2;
@@ -70,6 +69,17 @@ class TransactionProvider extends ChangeNotifier {
     return bal < 0 ? 0 : bal;
   }
 
+  double get totalIncomeAll {
+    return allTransactions
+        .where((e) => e.isIncome)
+        .fold(0.0, (a, b) => a + b.amount);
+  }
+
+  double get totalExpenseAll {
+    return allTransactions
+        .where((e) => !e.isIncome)
+        .fold(0.0, (a, b) => a + b.amount);
+  }
 
   // -------------------------------------------------------------
   // ADD TRANSACTION ✓ AUTO APPLY BALANCE
@@ -202,64 +212,63 @@ class TransactionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-
   // -------------------------------------------------------------
   // ADD INITIAL BALANCE SAAT AKUN DIBUAT
   // -------------------------------------------------------------
   Future<void> addInitialBalanceTransaction(
     AccountModel acc, // Akun yang baru ditambahkan
     int accountKey, // Hive Key dari akun tersebut
-) async {
+  ) async {
     // Gunakan nilai absolute agar tidak ada masalah dengan minus
-    final amount = acc.balance.abs(); 
-    
+    final amount = acc.balance.abs();
+
     // Hanya buat transaksi jika saldo awal > 0
-    if (amount <= 0) return; 
+    if (amount <= 0) return;
 
     final tx = TransactionModel(
-        note: "Saldo Awal - ${acc.name}", 
-        category: "Lainnya", 
-        amount: amount,
-        isIncome: true, // Saldo Awal = Pemasukan
-        date: DateTime.now(),
-        accountId: accountKey,
+      note: "Saldo Awal - ${acc.name}",
+      category: "Lainnya",
+      amount: amount,
+      isIncome: true, // Saldo Awal = Pemasukan
+      date: DateTime.now(),
+      accountId: accountKey,
     );
 
     //    await accountProvider.applyTransaction(newOutTx);
-    //await addTransaction(tx, accountProvider: null); 
+    //await addTransaction(tx, accountProvider: null);
     // Saya akan berasumsi ada method _saveTx(tx) yang menangani penyimpanan & notifikasi.
-    await _saveTx(tx); 
-}
+    await _saveTx(tx);
+  }
 
   // -------------------------------------------------------------
   // REVERT TRANSACTION SAAT AKUN TERHAPUS
   // -------------------------------------------------------------
-/// Mencatat Reversal Saldo Akun sebagai transaksi Expense saat akun dihapus.
-Future<void> revertAccountTransaction(
-    AccountModel acc, 
-    int accountKey, 
-) async {
-    final amount = acc.balance.abs(); 
-    
+  /// Mencatat Reversal Saldo Akun sebagai transaksi Expense saat akun dihapus.
+  Future<void> revertAccountTransaction(
+    AccountModel acc,
+    int accountKey,
+  ) async {
+    final amount = acc.balance.abs();
+
     // Hanya buat transaksi reversal jika saldo akhir > 0
     if (amount <= 0) return;
 
     final tx = TransactionModel(
-        note: "Penghapusan Akun - ${acc.name}", 
-        category: "Lainnya", 
-        amount: amount,
-        isIncome: false, // Reversal = Pengeluaran
-        date: DateTime.now(),
-        accountId: accountKey,
+      note: "Penghapusan Akun - ${acc.name}",
+      category: "Lainnya",
+      amount: amount,
+      isIncome: false, // Reversal = Pengeluaran
+      date: DateTime.now(),
+      accountId: accountKey,
     );
-    
-    await _saveTx(tx);
-}
 
-Future<void> _saveTx(TransactionModel tx) async {
+    await _saveTx(tx);
+  }
+
+  Future<void> _saveTx(TransactionModel tx) async {
     await _box.add(tx);
-    notifyListeners();  
-}
+    notifyListeners();
+  }
 
   // -------------------------------------------------------------
   // ANALYTICS (unchanged)

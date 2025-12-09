@@ -11,8 +11,7 @@ import '../../providers/settings_provider.dart';
 import '../transactions/add_transaction_modal.dart';
 import '../transactions/transactions_page.dart';
 import '../../themes/category_colors.dart';
-
-
+import '../../providers/account_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -70,9 +69,15 @@ class _DashboardPageState extends State<DashboardPage>
     final tx = context.watch<TransactionProvider>();
     final s = context.watch<SettingsProvider>();
 
-    final income = tx.totalIncome;
-    final expense = tx.totalExpense;
-    final balance = tx.totalBalance;
+    final headerIncome = tx.totalIncomeAll;
+final headerExpense = tx.totalExpenseAll;
+
+final filteredIncome = tx.totalIncome;
+final filteredExpense = tx.totalExpense;
+
+    final accProvider = context.watch<AccountProvider>();
+    final balance = accProvider.totalAccountBalance;
+
     final transactions = tx.filteredTransactions;
 
     final Map<String, double> categoryTotals = {};
@@ -104,7 +109,7 @@ class _DashboardPageState extends State<DashboardPage>
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(balance, income, expense, s),
+            _buildHeader(balance, headerIncome, headerExpense, s),
             Expanded(
               child: SingleChildScrollView(
                 padding:
@@ -116,7 +121,7 @@ class _DashboardPageState extends State<DashboardPage>
                     const SizedBox(height: 14),
                     _buildSmartSummary(context, tx, s),
                     const SizedBox(height: 14),
-                    _buildSummaryCards(income, expense, balance, s),
+                    _buildSummaryCards(filteredIncome, filteredExpense, filteredIncome - filteredExpense, s),
                     const SizedBox(height: 14),
                     AnimatedBuilder(
                       animation: _donutController,
@@ -153,93 +158,107 @@ class _DashboardPageState extends State<DashboardPage>
   // -------------------------------------------------------------------
 
   Widget _buildHeader(
-      double balance, double income, double expense, SettingsProvider s) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3E7BFA), Color(0xFF2F4CFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    double balance,
+    double headerIncome,
+    double headerExpense,
+    SettingsProvider s,
+  ) {
+  return Container(
+    padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF3E7BFA), Color(0xFF2F4CFF)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.10),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        )
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Total Saldo",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        duration: Duration(seconds: 1),
+                        content: Text("Belum ada notifikasi"),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.notifications_outlined,
+                      color: Colors.white),
+                ),
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SettingsPage(),
+                      ),
+                    );
+                  },
+                  icon:
+                      const Icon(Icons.settings_outlined, color: Colors.white),
+                ),
+              ],
+            )
+          ],
         ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.10),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Total Saldo",
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          duration: Duration(seconds: 1),
-                          content: Text("Belum ada notifikasi"),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Colors.white,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SettingsPage()),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.settings_outlined,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              )
-            ],
+
+        const SizedBox(height: 10),
+
+        // TOTAL SALDO — selalu total akun
+        Text(
+          "${s.currencySymbol}${_fmt(s.convert(balance))}",
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
           ),
+        ),
 
-          const SizedBox(height: 10),
+        const SizedBox(height: 20),
 
-          Text(
-            "${s.currencySymbol}${_fmt(s.convert(balance))}",
-            style: const TextStyle(
-                color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-          ),
-
-          const SizedBox(height: 20),
-
-          Row(
-            children: [
-              Expanded(
-                child: _miniStatCard("Pemasukan", s.convert(income), Colors.green),
+        Row(
+          children: [
+            Expanded(
+              child: _miniStatCard(
+                "Income",
+                s.convert(headerIncome),
+                Colors.green,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _miniStatCard("Pengeluaran", s.convert(expense), Colors.red),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _miniStatCard(
+                "Expense",
+                s.convert(headerExpense),
+                Colors.red,
               ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
+            ),
+          ],
+        )
+      ],
+    ),
+  );
+}
+
 
   Widget _miniStatCard(String title, double value, Color color) {
     return Container(
@@ -466,7 +485,7 @@ class _DashboardPageState extends State<DashboardPage>
     double expense,
     double balance,
     SettingsProvider s,
-  ){
+  ) {
     return Row(
       children: [
         Expanded(
@@ -549,101 +568,95 @@ class _DashboardPageState extends State<DashboardPage>
   // -------------------------------------------------------------------
 
   Widget _buildAnalyticsCard(
-  List<_PieSegment> segments,
-  double total,
-  double animValue,
-  SettingsProvider s,
-) {
-  return Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Pengeluaran per Kategori",
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
+    List<_PieSegment> segments,
+    double total,
+    double animValue,
+    SettingsProvider s,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
-        const SizedBox(height: 16),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Pengeluaran per Kategori",
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (segments.isEmpty || total == 0)
+            const _ShimmerPlaceholder(count: 3)
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _AnimatedDonut(
+                  segments,
+                  total,
+                  animValue: animValue,
+                  conversionRate: s.currencyFormat == 0 ? 1.0 : 0.000065,
+                  currencySymbol: s.currencySymbol,
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    children: segments.map((seg) {
+                      final color = CategoryColors.getColor(seg.label);
 
-        if (segments.isEmpty || total == 0)
-          const _ShimmerPlaceholder(count: 3)
-        else
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _AnimatedDonut(
-                segments,
-                total,
-                animValue: animValue,
-                conversionRate: s.currencyFormat == 0 ? 1.0 : 0.000065,  
-                currencySymbol: s.currencySymbol,
-              ),
-
-              const SizedBox(width: 20),
-
-              Expanded(
-                child: Column(
-                  children: segments.map((seg) {
-                    final color = CategoryColors.getColor(seg.label);
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          Expanded(
-                            child: Text(
-                              seg.label,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(4),
                               ),
                             ),
-                          ),
-
-                          Text(
-                            "${s.currencySymbol}${_fmt(s.convert(seg.value))}",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                seg.label,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
-                          )
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              )
-            ],
-          )
-      ],
-    ),
-  );
-}
-
+                            Text(
+                              "${s.currencySymbol}${_fmt(s.convert(seg.value))}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            )
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                )
+              ],
+            )
+        ],
+      ),
+    );
+  }
 
   // -------------------------------------------------------------------
   // GOALS & ACCOUNTS
@@ -672,6 +685,10 @@ class _DashboardPageState extends State<DashboardPage>
   }
 
   Widget _buildAccountsCard() {
+    final accProvider = context.watch<AccountProvider>();
+    final accounts = accProvider.accounts;
+    final s = context.watch<SettingsProvider>();
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -684,12 +701,29 @@ class _DashboardPageState extends State<DashboardPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Akun Saya",
-              style: TextStyle(fontWeight: FontWeight.w600)),
+          const Text(
+            "Akun Saya",
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
-          _accRow("Rekening Utama", "Bank Mandiri", "0"),
-          const Divider(),
-          _accRow("Tabungan", "Bank BCA", "0"),
+          if (accounts.isEmpty)
+            const Text(
+              "Belum ada akun",
+              style: TextStyle(color: Colors.black45),
+            )
+          else
+            ...accounts.map((acc) {
+              return Column(
+                children: [
+                  _accRow(
+                    acc.name,
+                    acc.bank,
+                    "${s.currencySymbol}${_fmt(s.convert(acc.balance))}",
+                  ),
+                  const Divider(),
+                ],
+              );
+            }).toList(),
         ],
       ),
     );
@@ -730,7 +764,6 @@ class _DashboardPageState extends State<DashboardPage>
       children: [
         const Text("Transactions",
             style: TextStyle(fontWeight: FontWeight.w700)),
-        
       ],
     );
   }
@@ -825,20 +858,20 @@ class _DashboardPageState extends State<DashboardPage>
   // -------------------------------------------------------------------
   // HELPERS
   // -------------------------------------------------------------------
-  
+
   // Di dalam _DashboardPageState
 
-String _fmt(double x) {
+  String _fmt(double x) {
     if (x.isNaN || x.isInfinite) return "0,00"; // Default jika tidak valid
 
     // 1. SELALU format ke 2 angka desimal (Contoh: 25000 -> "25000.00")
-    String numString = x.abs().toStringAsFixed(2); 
-    
+    String numString = x.abs().toStringAsFixed(2);
+
     // 2. Pisahkan bagian integer dan desimal
     final parts = numString.split('.');
     final integerPart = parts[0];
     // decimalPart akan selalu ada karena toStringAsFixed(2)
-    final decimalPart = parts.length > 1 ? parts[1] : '00'; 
+    final decimalPart = parts.length > 1 ? parts[1] : '00';
 
     // 3. Logika Pemisah Ribuan (pada bagian integer)
     final s = integerPart.split('').reversed.join();
@@ -853,10 +886,10 @@ String _fmt(double x) {
         .toList()
         .reversed
         .join('.'); // Titik (.) sebagai pemisah ribuan
-        
+
     // 4. Gabungkan dengan koma (,) sebagai pemisah desimal
-    return "$formattedInteger,$decimalPart"; 
-}
+    return "$formattedInteger,$decimalPart";
+  }
 
   String _short(double v) {
     if (v >= 1000000) return "${(v / 1000000).toStringAsFixed(1)}M";
@@ -903,7 +936,7 @@ class _AnimatedDonut extends StatelessWidget {
   Widget build(BuildContext context) {
     final stops = <double>[];
     final colors = <Color>[];
-    
+
     double acc = 0;
 
     for (final seg in segments) {
@@ -969,17 +1002,38 @@ class _AnimatedDonut extends StatelessWidget {
   String _formatCenter() {
     final convertedTotal = total * conversionRate;
 
-    if (convertedTotal >= 1000000) {
-      return "${(convertedTotal / 1000000).toStringAsFixed(1)}M";
-    }
-    if (convertedTotal >= 1000) {
-      return "${(convertedTotal / 1000).toStringAsFixed(1)}K";
-    }
+    // Detect currency: Rp → Indonesian format, else English
+    final bool isIdr = currencySymbol.trim().toLowerCase().contains("rp");
 
-    return convertedTotal.toStringAsFixed(0);
+    if (isIdr) {
+      return _formatIdr(convertedTotal);
+    } else {
+      return _formatEnglish(convertedTotal);
+    }
+  }
+
+// ===============================
+// INDONESIAN SHORT FORMAT
+// ===============================
+  String _formatIdr(double v) {
+    if (v >= 1e12) return "${(v / 1e12).toStringAsFixed(1)} T";
+    if (v >= 1e9) return "${(v / 1e9).toStringAsFixed(2)} M";
+    if (v >= 1e6) return "${(v / 1e6).toStringAsFixed(1)} Jt";
+    if (v >= 1e3) return "${(v / 1e3).toStringAsFixed(1)} Rb";
+    return v.toStringAsFixed(0);
+  }
+
+// ===============================
+// ENGLISH SHORT FORMAT
+// ===============================
+  String _formatEnglish(double v) {
+    if (v >= 1e12) return "${(v / 1e12).toStringAsFixed(1)}T";
+    if (v >= 1e9) return "${(v / 1e9).toStringAsFixed(1)}B";
+    if (v >= 1e6) return "${(v / 1e6).toStringAsFixed(1)}M";
+    if (v >= 1e3) return "${(v / 1e3).toStringAsFixed(1)}K";
+    return v.toStringAsFixed(0);
   }
 }
-
 
 // -------------------------------------------------------------------
 // SHIMMER PLACEHOLDER (SKELETON LOADING)

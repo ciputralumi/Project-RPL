@@ -13,14 +13,16 @@ import 'providers/budget_provider.dart';
 import 'providers/account_provider.dart';
 
 import 'presentation/main_navigation.dart';
-import 'package:path/path.dart' as path;
-import 'dart:io';
 import 'themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  String envPath = path.join(Directory.current.path, '.env');
-  await dotenv.load(fileName: envPath);
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    // .env file not found, continuing without it
+    print('Warning: .env file not found');
+  }
 
   await Hive.initFlutter();
 
