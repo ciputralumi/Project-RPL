@@ -13,11 +13,15 @@ import 'providers/budget_provider.dart';
 import 'providers/account_provider.dart';
 
 import 'presentation/main_navigation.dart';
+import 'package:path/path.dart' as path;
+import 'dart:io';
 import 'themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  String envPath = path.join(Directory.current.path, '.env');
+  await dotenv.load(fileName: envPath);
+
   await Hive.initFlutter();
 
   // REGISTER ADAPTERS
