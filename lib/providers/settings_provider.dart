@@ -6,11 +6,10 @@ import '../data/models/budget_model.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:connectivity_plus/connectivity_plus.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  final String _fixerAccessKey = "f70451a0989e80946e88f09d71cc1dba";
-  
+  final String _fixerAccessKey = dotenv.env['FIXER_ACCESS_KEY']!;
   final Box settingsBox = Hive.box('settings');
   final Box<TransactionModel> transactionBox =
       Hive.box<TransactionModel>('transactions');

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'data/models/transaction_model.dart';
 import 'data/models/budget_model.dart';
@@ -10,12 +11,13 @@ import 'providers/transaction_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/budget_provider.dart';
 import 'providers/account_provider.dart';
+
 import 'presentation/main_navigation.dart';
 import 'themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await dotenv.load(fileName: ".env");
   await Hive.initFlutter();
 
   // REGISTER ADAPTERS
