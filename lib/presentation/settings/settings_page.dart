@@ -14,9 +14,9 @@ class SettingsPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF6F7FB),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFFF6F7FB),
+        backgroundColor: const Color(0xFF448AFF),
         foregroundColor: Colors.black87,
-        title: const Text(
+        title: const Text(  
           "Settings",
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
@@ -431,6 +431,8 @@ class SettingsPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
                 settings.clearAllTransactions();
+                settings.clearAllAccounts();
+                settings.clearAllBudgets();
                 Navigator.pop(context);
               },
               child: const Text("Reset"),

@@ -25,7 +25,7 @@ class BudgetPage extends StatelessWidget {
               "Anggaran",
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: Color(0xFF448AFF),
             elevation: 0,
             foregroundColor: Colors.black,
             surfaceTintColor: Colors.transparent,

@@ -293,8 +293,15 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
         selectedAccountId == null) {
       return;
     }
+    final txProvider = context.read<TransactionProvider>();
+    final accProvider = context.read<AccountProvider>();
+    final settings = context.read<SettingsProvider>();
 
-    final amount = double.tryParse(amountController.text) ?? 0;
+    String cleanAmountText = amountController.text.replaceAll('.', '').replaceAll(',', '');
+
+    final rawAmountInput = double.tryParse(cleanAmountText) ?? 0;
+    final amount = settings.unconvert(rawAmountInput);
+    //final amount = double.tryParse(amountController.text) ?? 0;
 
     final newTx = TransactionModel(
       note:
@@ -306,9 +313,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       accountId: int.parse(selectedAccountId!),
     );
 
-    final txProvider = context.read<TransactionProvider>();
-    final accProvider = context.read<AccountProvider>();
-
+    
     await txProvider.addTransaction(
       newTx,
       accountProvider: accProvider,

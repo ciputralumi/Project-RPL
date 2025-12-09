@@ -12,6 +12,8 @@ import '../transactions/add_transaction_modal.dart';
 import '../transactions/transactions_page.dart';
 import '../../themes/category_colors.dart';
 
+
+
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -42,6 +44,7 @@ class _DashboardPageState extends State<DashboardPage>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SettingsProvider>().fetchUsdRate();
       context.read<TransactionProvider>().setFilter(selectedPeriodIndex);
       _listAnimateController.forward();
       _donutController.forward();
@@ -402,7 +405,7 @@ class _DashboardPageState extends State<DashboardPage>
               Expanded(
                 child: _summaryTile(
                   "Bulan Ini",
-                  "${s.currencySymbol}${_fmt(thisMonthTotal)}",
+                  "${s.currencySymbol}${_fmt(s.convert(thisMonthTotal))}",
                   Colors.blue,
                 ),
               ),
@@ -410,7 +413,7 @@ class _DashboardPageState extends State<DashboardPage>
               Expanded(
                 child: _summaryTile(
                   "Bulan Lalu",
-                  "${s.currencySymbol}${_fmt(lastMonthTotal)}",
+                  "${s.currencySymbol}${_fmt(s.convert(lastMonthTotal))}",
                   Colors.grey,
                 ),
               ),
@@ -420,7 +423,7 @@ class _DashboardPageState extends State<DashboardPage>
           if (topCategory != "-")
             _summaryTile(
               "Kategori Tertinggi",
-              "$topCategory (${s.currencySymbol}${_fmt(topValue)})",
+              "$topCategory (${s.currencySymbol}${_fmt(s.convert(topValue))})",
               Colors.deepPurple,
             ),
         ],
@@ -727,15 +730,7 @@ class _DashboardPageState extends State<DashboardPage>
       children: [
         const Text("Transactions",
             style: TextStyle(fontWeight: FontWeight.w700)),
-        TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TransactionsPage()),
-            );
-          },
-          child: const Text("Lihat Semua"),
-        ),
+        
       ],
     );
   }
@@ -830,23 +825,38 @@ class _DashboardPageState extends State<DashboardPage>
   // -------------------------------------------------------------------
   // HELPERS
   // -------------------------------------------------------------------
+  
+  // Di dalam _DashboardPageState
 
-  String _fmt(double x) {
-    if (x.isNaN || x.isInfinite) return "0";
+String _fmt(double x) {
+    if (x.isNaN || x.isInfinite) return "0,00"; // Default jika tidak valid
 
-    final s = x.abs().round().toString().split('').reversed.join();
-    final parts = <String>[];
+    // 1. SELALU format ke 2 angka desimal (Contoh: 25000 -> "25000.00")
+    String numString = x.abs().toStringAsFixed(2); 
+    
+    // 2. Pisahkan bagian integer dan desimal
+    final parts = numString.split('.');
+    final integerPart = parts[0];
+    // decimalPart akan selalu ada karena toStringAsFixed(2)
+    final decimalPart = parts.length > 1 ? parts[1] : '00'; 
+
+    // 3. Logika Pemisah Ribuan (pada bagian integer)
+    final s = integerPart.split('').reversed.join();
+    final separatedParts = <String>[];
 
     for (int i = 0; i < s.length; i += 3) {
-      parts.add(s.substring(i, min(i + 3, s.length)));
+      separatedParts.add(s.substring(i, min(i + 3, s.length)));
     }
 
-    return parts
+    String formattedInteger = separatedParts
         .map((e) => e.split('').reversed.join())
         .toList()
         .reversed
-        .join('.');
-  }
+        .join('.'); // Titik (.) sebagai pemisah ribuan
+        
+    // 4. Gabungkan dengan koma (,) sebagai pemisah desimal
+    return "$formattedInteger,$decimalPart"; 
+}
 
   String _short(double v) {
     if (v >= 1000000) return "${(v / 1000000).toStringAsFixed(1)}M";

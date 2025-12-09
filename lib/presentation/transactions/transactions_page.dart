@@ -334,7 +334,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
   Widget _buildTransactionTile(TransactionModel tx, SettingsProvider s) {
     final catColor = CategoryColors.getColor(tx.category);
-    final amountText = "${s.currencySymbol}${_format(tx.amount)}";
+    final settings = context.watch<SettingsProvider>();
+    final amountText = "${s.currencySymbol}${_format(settings.convert(tx.amount))}";
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),

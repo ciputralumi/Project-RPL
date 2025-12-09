@@ -60,7 +60,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFF448AFF),
         foregroundColor: Colors.black,
       ),
       body: FadeTransition(
@@ -153,7 +153,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 getTitlesWidget: (v, meta) {
                   if (v == 0) return const SizedBox();
                   return Text(
-                    "${settings.currencySymbol}${v.toInt()}",
+                    "${settings.currencySymbol}${settings.convert(v).toInt()}",
                     style: const TextStyle(fontSize: 10),
                   );
                 },
@@ -218,7 +218,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 getTitlesWidget: (v, meta) {
                   if (v == 0) return const SizedBox();
                   return Text(
-                    "${settings.currencySymbol}${v.toInt()}",
+                    "${settings.currencySymbol}${settings.convert(v).toInt()}",
                     style: const TextStyle(fontSize: 9),
                   );
                 },
