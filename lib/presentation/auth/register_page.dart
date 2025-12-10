@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../main_navigation.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -26,7 +27,9 @@ class _RegisterPageState extends State<RegisterPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              // ============================================================
               // BLUE HEADER
+              // ============================================================
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 40),
@@ -60,7 +63,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
               const SizedBox(height: 20),
 
+              // ============================================================
               // REGISTER CARD
+              // ============================================================
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 padding: const EdgeInsets.all(22),
@@ -85,34 +90,38 @@ class _RegisterPageState extends State<RegisterPage> {
                             fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                     ),
+
                     const SizedBox(height: 20),
 
-                    // NAME
+                    // ================= NAME =================
                     const Text("Nama Lengkap",
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: nameController,
-                      decoration: _inputStyle("Masukkan nama lengkap",
-                          Icons.person_outline),
+                      decoration: _inputStyle(
+                        "Masukkan nama lengkap",
+                        Icons.person_outline,
+                      ),
                     ),
 
                     const SizedBox(height: 18),
 
-                    // EMAIL
+                    // ================= EMAIL =================
                     const Text("Email",
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: emailController,
                       decoration: _inputStyle(
-                          "nama@email.com",
-                          Icons.email_outlined),
+                        "nama@email.com",
+                        Icons.email_outlined,
+                      ),
                     ),
 
                     const SizedBox(height: 18),
 
-                    // PASSWORD
+                    // ================= PASSWORD =================
                     const Text("Password",
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
@@ -128,7 +137,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                     const SizedBox(height: 18),
 
-                    // CONFIRM PASSWORD
+                    // ================= CONFIRM PASSWORD =================
                     const Text("Konfirmasi Password",
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
@@ -137,15 +146,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       obscureText: obscureConfirm,
                       decoration: _passwordInput(
                         obscureConfirm,
-                        () =>
-                            setState(() => obscureConfirm = !obscureConfirm),
+                        () => setState(() => obscureConfirm = !obscureConfirm),
                         "Ulangi password",
                       ),
                     ),
 
                     const SizedBox(height: 20),
 
-                    // REGISTER BUTTON ✔ FIXED
+                    // =====================================================
+                    // REGISTER BUTTON — FIXED & WORKING
+                    // =====================================================
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -156,7 +166,8 @@ class _RegisterPageState extends State<RegisterPage> {
                               confirmPassController.text.trim()) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text("Password tidak cocok")),
+                                content: Text("Password tidak cocok"),
+                              ),
                             );
                             return;
                           }
@@ -168,12 +179,18 @@ class _RegisterPageState extends State<RegisterPage> {
                           );
 
                           if (result != null) {
+                            // REGISTER GAGAL
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text(result)),
                             );
                           } else {
-                            Navigator.pushReplacementNamed(
-                                context, '/dashboard');
+                            // REGISTER SUKSES → MASUK APP
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MainNavigation(),
+                              ),
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -192,6 +209,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                     const SizedBox(height: 14),
 
+                    // BACK TO LOGIN
                     Center(
                       child: GestureDetector(
                         onTap: () => Navigator.pop(context),
@@ -200,10 +218,12 @@ class _RegisterPageState extends State<RegisterPage> {
                             text: "Sudah punya akun? ",
                             children: [
                               TextSpan(
-                                  text: "Masuk",
-                                  style: TextStyle(
-                                      color: Color(0xFF2B6BFF),
-                                      fontWeight: FontWeight.w600)),
+                                text: "Masuk",
+                                style: TextStyle(
+                                  color: Color(0xFF2B6BFF),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -221,6 +241,9 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
+  // ============================================================
+  // INPUT STYLES
+  // ============================================================
   InputDecoration _inputStyle(String hint, IconData icon) {
     return InputDecoration(
       prefixIcon: Icon(icon),

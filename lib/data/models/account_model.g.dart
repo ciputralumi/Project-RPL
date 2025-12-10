@@ -18,7 +18,7 @@ class AccountModelAdapter extends TypeAdapter<AccountModel> {
     };
     return AccountModel(
       name: fields[0] as String,
-      bank: fields[1] as String,
+      type: fields[1] as String,
       balance: fields[2] as double,
     );
   }
@@ -30,7 +30,7 @@ class AccountModelAdapter extends TypeAdapter<AccountModel> {
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.bank)
+      ..write(obj.type)
       ..writeByte(2)
       ..write(obj.balance);
   }

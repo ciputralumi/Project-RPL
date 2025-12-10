@@ -1,7 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:hive/hive.dart';
+
 import '../../providers/settings_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../themes/category_colors.dart';
+import '../profile/profile_page.dart';
+import '../auth/login_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -9,6 +15,8 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
+    final auth = context.watch<AuthProvider>();
+    final user = auth.currentUser;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
@@ -27,43 +35,46 @@ class SettingsPage extends StatelessWidget {
         children: [
 
           // ------------------------------------------------
-          // USER HEADER
+          // USER HEADER + FOTO PROFIL
           // ------------------------------------------------
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+            decoration: _cardDecoration(),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 28,
+                  radius: 30,
                   backgroundColor: Colors.blue.shade100,
-                  child: const Icon(Icons.person, size: 35, color: Colors.blue),
+
+                  // FOTO PROFIL DARI HIVE
+                  backgroundImage: (user?.profileImage != null &&
+                          File(user!.profileImage!).existsSync())
+                      ? FileImage(File(user.profileImage!))
+                      : null,
+
+                  // DEFAULT ICON
+                  child: (user?.profileImage == null ||
+                          !(File(user!.profileImage!).existsSync()))
+                      ? const Icon(Icons.person, size: 35, color: Colors.blue)
+                      : null,
                 ),
+
                 const SizedBox(width: 16),
-                const Column(
+
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "User",
-                      style: TextStyle(
+                      user?.name ?? "User",
+                      style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 18,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      "Pengaturan aplikasi",
-                      style: TextStyle(
+                      user?.email ?? "Email tidak ditemukan",
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Colors.grey,
                       ),
@@ -74,13 +85,33 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
+          // PROFIL SAYA BUTTON
+          Container(
+            decoration: _cardDecoration(),
+            child: ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text(
+                "Profil Saya",
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ProfilePage(),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 24),
           _sectionTitle("Appearance"),
 
-          // ------------------------------------------------
           // DARK MODE
-          // ------------------------------------------------
           _settingCard(
             title: "Dark Mode",
             trailing: Switch(
@@ -94,24 +125,49 @@ class SettingsPage extends StatelessWidget {
           const SizedBox(height: 20),
           _sectionTitle("Currency"),
 
-          // ------------------------------------------------
-          // CURRENCY SELECTOR PREMIUM
-          // ------------------------------------------------
+          // CURRENCY SELECTOR
           _currencyCard(settings),
 
           const SizedBox(height: 26),
           _sectionTitle("Categories"),
 
-          // ------------------------------------------------
           // CATEGORY MANAGER
-          // ------------------------------------------------
           _categoryManager(context),
 
           const SizedBox(height: 28),
 
-          // ------------------------------------------------
+          // LOGOUT
+          Container(
+            decoration: _cardDecoration(),
+            child: ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text(
+                "Logout",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red,
+                ),
+              ),
+              onTap: () {
+                // CLEAR REMEMBER ME
+                Hive.box('settings').put('remember_me', false);
+
+                // HAPUS USER
+                auth.logout();
+
+                // ARAHKAN KE LOGIN PAGE
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
           // RESET DATA
-          // ------------------------------------------------
           _dangerButton(
             label: "Reset Semua Data",
             onPressed: () => _confirmReset(context),
@@ -120,13 +176,13 @@ class SettingsPage extends StatelessWidget {
           const SizedBox(height: 30),
         ],
       ),
-
     );
   }
 
-  // ==============================
-  // SECTION TITLE
-  // ==============================
+  // ============================================================
+  // COMPONENT HELPERS
+  // ============================================================
+
   Widget _sectionTitle(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -141,9 +197,6 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  // ==============================
-  // SETTING CARD WRAPPER
-  // ==============================
   Widget _settingCard({required String title, required Widget trailing}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -165,9 +218,9 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  // ==============================
-  // CURRENCY SELECTOR PREMIUM
-  // ==============================
+  // ================================
+  // CURRENCY SELECTOR
+  // ================================
   Widget _currencyCard(SettingsProvider settings) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -182,8 +235,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _currencyChip(
-      String label, int index, SettingsProvider settings) {
+  Widget _currencyChip(String label, int index, SettingsProvider settings) {
     final active = settings.currencyFormat == index;
 
     return Expanded(
@@ -214,9 +266,9 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  // ==============================
+  // ================================
   // CATEGORY MANAGER
-  // ==============================
+  // ================================
   Widget _categoryManager(BuildContext context) {
     final categories = CategoryColors.mapKeys;
 
@@ -275,9 +327,26 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  // ==============================
-  // RED DANGER BUTTON
-  // ==============================
+  // ================================
+  // CARD DECORATION
+  // ================================
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    );
+  }
+
+  // ================================
+  // DANGER BUTTON
+  // ================================
   Widget _dangerButton({required String label, required VoidCallback onPressed}) {
     return GestureDetector(
       onTap: onPressed,
@@ -300,144 +369,103 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  // ==============================
-  // CARD DECORATION
-  // ==============================
-  BoxDecoration _cardDecoration() {
-    return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 3),
-        ),
-      ],
-    );
-  }
-
-  // -----------------------------
-  // ADD CATEGORY
-  // -----------------------------
+  // ================================
+  // CATEGORY DIALOGS
+  // ================================
   void _addCategory(BuildContext context) {
     final controller = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Tambah Kategori"),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: "Nama kategori"),
+      builder: (_) => AlertDialog(
+        title: const Text("Tambah Kategori"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: "Nama kategori"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                CategoryColors.addCategory(controller.text);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Tambah"),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Batal"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (controller.text.isNotEmpty) {
-                  CategoryColors.addCategory(controller.text);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text("Tambah"),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 
-  // -----------------------------
-  // RENAME CATEGORY
-  // -----------------------------
   void _renameCategory(BuildContext context, String oldName) {
     final controller = TextEditingController(text: oldName);
+
     showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Ubah Nama Kategori"),
-          content: TextField(controller: controller),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Batal"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                CategoryColors.renameCategory(oldName, controller.text);
-                Navigator.pop(context);
-              },
-              child: const Text("Simpan"),
-            ),
-          ],
-        );
-      },
+      builder: (_) => AlertDialog(
+        title: const Text("Ubah Nama Kategori"),
+        content: TextField(controller: controller),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+          ElevatedButton(
+            onPressed: () {
+              CategoryColors.renameCategory(oldName, controller.text);
+              Navigator.pop(context);
+            },
+            child: const Text("Simpan"),
+          ),
+        ],
+      ),
     );
   }
 
-  // -----------------------------
-  // DELETE CATEGORY
-  // -----------------------------
   void _deleteCategory(BuildContext context, String cat) {
     showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Hapus Kategori?"),
-          content: Text("Kategori \"$cat\" akan dihapus permanen."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Batal"),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                CategoryColors.removeCategory(cat);
-                Navigator.pop(context);
-              },
-              child: const Text("Hapus"),
-            ),
-          ],
-        );
-      },
+      builder: (_) => AlertDialog(
+        title: const Text("Hapus Kategori?"),
+        content: Text("Kategori \"$cat\" akan dihapus permanen."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              CategoryColors.removeCategory(cat);
+              Navigator.pop(context);
+            },
+            child: const Text("Hapus"),
+          ),
+        ],
+      ),
     );
   }
 
-  // -----------------------------
-  // CONFIRM RESET
-  // -----------------------------
+  // ================================
+  // RESET DATA
+  // ================================
   void _confirmReset(BuildContext context) {
     final settings = context.read<SettingsProvider>();
 
     showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Reset Semua Data?"),
-          content: const Text(
-              "Semua transaksi akan dihapus dan tidak bisa dikembalikan."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Batal"),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                settings.clearAllTransactions();
-                Navigator.pop(context);
-              },
-              child: const Text("Reset"),
-            ),
-          ],
-        );
-      },
+      builder: (_) => AlertDialog(
+        title: const Text("Reset Semua Data?"),
+        content: const Text(
+            "Semua transaksi akan dihapus dan tidak bisa dikembalikan."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              settings.clearAllTransactions();
+              Navigator.pop(context);
+            },
+            child: const Text("Reset"),
+          ),
+        ],
+      ),
     );
   }
 }

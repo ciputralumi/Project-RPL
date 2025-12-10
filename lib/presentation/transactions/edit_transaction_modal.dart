@@ -117,7 +117,7 @@ class _EditTransactionModalState extends State<EditTransactionModal> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("${acc.name} (${acc.bank})"),
+                      Text("${acc.name} (${acc.type})"),
                       Text(
                         balance,
                         style: TextStyle(

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../data/models/account_model.dart';
 import '../../providers/account_provider.dart';
 import 'account_editor.dart';
+import 'account_detail_page.dart'; // ➜ Tambahan penting
 
 class AccountsPage extends StatelessWidget {
   const AccountsPage({super.key});
@@ -48,7 +49,7 @@ class AccountsPage extends StatelessWidget {
                   itemCount: accounts.length,
                   itemBuilder: (_, i) {
                     final acc = accounts[i];
-                    final keyId = accounts[i].key;
+                    final keyId = accounts[i].key; // Hive key
 
                     return _accountCard(context, acc, keyId);
                   },
@@ -62,86 +63,99 @@ class AccountsPage extends StatelessWidget {
   // ACCOUNT CARD COMPONENT
   // =============================================================
   Widget _accountCard(BuildContext context, AccountModel acc, int keyId) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: const Color(0xFFE8F0FF),
-            child: const Icon(Icons.account_balance_wallet,
-                color: Color(0xFF2F4CFF)),
-          ),
-          const SizedBox(width: 14),
-
-          // TEXT SECTION
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  acc.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  acc.bank,
-                  style: const TextStyle(
-                    color: Colors.black45,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AccountDetailPage(
+              account: acc,
+              accountKey: keyId,
             ),
           ),
-
-          // BALANCE
-          Text(
-            "Rp ${_fmt(acc.balance)}",
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF2F4CFF),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: const Color(0xFFE8F0FF),
+              child: const Icon(Icons.account_balance_wallet,
+                  color: Color(0xFF2F4CFF)),
             ),
-          ),
+            const SizedBox(width: 14),
 
-          const SizedBox(width: 6),
+            // TEXT SECTION
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    acc.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    acc.type, // FIX: sebelumnya acc.type (yang tidak ada)
+                    style: const TextStyle(
+                      color: Colors.black45,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-          // EDIT BUTTON
-          IconButton(
-            icon: const Icon(Icons.edit, size: 20),
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                backgroundColor: Colors.transparent,
-                isScrollControlled: true,
-                builder: (_) => AccountEditor(
-                  existing: acc,
-                  keyId: keyId,
-                ),
-              );
-            },
-          ),
+            // BALANCE
+            Text(
+              "Rp ${_fmt(acc.balance)}",
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2F4CFF),
+              ),
+            ),
 
-          // DELETE BUTTON
-          IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: () => _confirmDelete(context, keyId),
-          ),
-        ],
+            const SizedBox(width: 6),
+
+            // EDIT BUTTON
+            IconButton(
+              icon: const Icon(Icons.edit, size: 20),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (_) => AccountEditor(
+                    existing: acc,
+                    keyId: keyId,
+                  ),
+                );
+              },
+            ),
+
+            // DELETE BUTTON
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _confirmDelete(context, keyId),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -64,12 +64,17 @@ class AccountProvider extends ChangeNotifier {
     if (tx.isIncome) {
       newBalance += tx.amount;
     } else {
+      if (acc.balance < tx.amount) {
+        throw Exception(
+          'Saldo tidak mencukupi untuk pengeluaran ini. Saldo saat ini: ${acc.balance}',
+        );
+      }
       newBalance -= tx.amount;
     }
 
     final updated = AccountModel(
       name: acc.name,
-      bank: acc.bank,
+      type: acc.type,
       balance: newBalance,
     );
 
@@ -90,7 +95,7 @@ class AccountProvider extends ChangeNotifier {
 
     final updated = AccountModel(
       name: acc.name,
-      bank: acc.bank,
+      type: acc.type,
       balance: newBalance,
     );
 
@@ -107,7 +112,7 @@ class AccountProvider extends ChangeNotifier {
   }
 
   // =============================================================
-  // TRANSFER ANTAR AKUN — SUDAH DI DALAM CLASS (FIX)
+  // TRANSFER ANTAR AKUN
   // =============================================================
   Future<void> transfer({
     required int fromId,
@@ -121,6 +126,12 @@ class AccountProvider extends ChangeNotifier {
 
     if (accFrom == null || accTo == null) return;
 
+    if (accFrom.balance < amount) {
+      throw Exception(
+        'Saldo tidak mencukupi. Saldo saat ini: ${accFrom.balance}',
+      );
+    }
+
     final newFromBalance = accFrom.balance - amount;
     final newToBalance = accTo.balance + amount;
 
@@ -129,7 +140,7 @@ class AccountProvider extends ChangeNotifier {
       fromId,
       AccountModel(
         name: accFrom.name,
-        bank: accFrom.bank,
+        type: accFrom.type,
         balance: newFromBalance,
       ),
     );
@@ -139,11 +150,19 @@ class AccountProvider extends ChangeNotifier {
       toId,
       AccountModel(
         name: accTo.name,
-        bank: accTo.bank,
+        type: accTo.type,
         balance: newToBalance,
       ),
     );
 
     notifyListeners();
   }
+
+// -------------------------------------------------------
+// TOTAL BALANCE (untuk Dashboard)
+// -------------------------------------------------------
+double get totalBalance {
+  return _accounts.fold(0.0, (sum, acc) => sum + acc.balance);
+}
+
 }

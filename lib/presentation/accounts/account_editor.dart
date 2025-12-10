@@ -26,7 +26,7 @@ class _AccountEditorState extends State<AccountEditor> {
     super.initState();
 
     _nameCtrl = TextEditingController(text: widget.existing?.name ?? "");
-    _bankCtrl = TextEditingController(text: widget.existing?.bank ?? "");
+    _bankCtrl = TextEditingController(text: widget.existing?.type ?? "");
     _balanceCtrl = TextEditingController(
       text: widget.existing != null
           ? widget.existing!.balance.toStringAsFixed(0)
@@ -159,7 +159,7 @@ class _AccountEditorState extends State<AccountEditor> {
 
     final model = AccountModel(
       name: name,
-      bank: bank,
+      type: bank,
       balance: balance,
     );
 

@@ -1,3 +1,4 @@
+import 'package:finance_tracker_app/presentation/profile/profile_page.dart';
 import 'package:flutter/material.dart';
 
 import 'dashboard/dashboard_page.dart';
@@ -23,6 +24,9 @@ class _MainNavigationState extends State<MainNavigation> {
     BudgetPage(),
     AnalyticsPage(),
     AccountsPage(),
+    SettingsPage(),
+    const ProfilePage(),
+    
   ];
 
   @override

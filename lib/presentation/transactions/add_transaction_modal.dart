@@ -140,7 +140,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("${acc.name} (${acc.bank})"),
+                      Text("${acc.name} (${acc.type})"),
                       Text(
                         balance,
                         style: TextStyle(

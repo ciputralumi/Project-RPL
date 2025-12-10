@@ -3,6 +3,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/account_provider.dart';
+import '../../data/models/account_model.dart';
+
 
 import '../settings/settings_page.dart';
 import '../../data/models/transaction_model.dart';
@@ -11,6 +14,9 @@ import '../../providers/settings_provider.dart';
 import '../transactions/add_transaction_modal.dart';
 import '../transactions/transactions_page.dart';
 import '../../themes/category_colors.dart';
+import '../../providers/saving_goal_provider.dart';
+import '../goals/add_goal_modal.dart';
+import '../goals/edit_goal_modal.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -23,6 +29,7 @@ class _DashboardPageState extends State<DashboardPage>
     with TickerProviderStateMixin {
   int selectedPeriodIndex = 2; // Monthly
   final periods = ['Daily', 'Weekly', 'Monthly', 'Annual'];
+  
 
   late final AnimationController _listAnimateController;
   late final AnimationController _donutController;
@@ -66,6 +73,10 @@ class _DashboardPageState extends State<DashboardPage>
   Widget _buildDashboard(BuildContext context) {
     final tx = context.watch<TransactionProvider>();
     final s = context.watch<SettingsProvider>();
+    
+    final accounts = context.watch<AccountProvider>().accounts;
+    final accountsTotalBalance = context.watch<AccountProvider>().totalBalance;
+
 
     final income = tx.totalIncome;
     final expense = tx.totalExpense;
@@ -129,8 +140,6 @@ class _DashboardPageState extends State<DashboardPage>
                     const SizedBox(height: 14),
                     _buildGoalsCard(),
                     const SizedBox(height: 14),
-                    _buildAccountsCard(),
-                    const SizedBox(height: 14),
                     _buildTransactionsHeader(),
                     const SizedBox(height: 8),
                     _buildAnimatedPreview(transactions, s),
@@ -144,6 +153,86 @@ class _DashboardPageState extends State<DashboardPage>
       ),
     );
   }
+
+  Widget _buildAccountsCard(List<AccountModel> accounts) {
+  return Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 8,
+        )
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Akun Saya",
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+
+        if (accounts.isEmpty)
+          const Text(
+            "Belum ada akun. Tambahkan akun di menu 'Accounts'.",
+            style: TextStyle(color: Colors.black45, fontSize: 13),
+          )
+        else
+          ...accounts.map((acc) {
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: const Color(0xFFE8F0FF),
+                      child: const Icon(
+                        Icons.account_balance_wallet,
+                        color: Color(0xFF2F4CFF),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            acc?.name ?? "-",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            acc?.type ?? "-",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      acc.balance.toStringAsFixed(0),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    )
+                  ],
+                ),
+
+                const Divider(height: 22),
+              ],
+            );
+          }).toList(),
+      ],
+    ),
+  );
+}
+
 
   // -------------------------------------------------------------------
   // HEADER
@@ -647,51 +736,83 @@ class _DashboardPageState extends State<DashboardPage>
   // -------------------------------------------------------------------
 
   Widget _buildGoalsCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
-        ],
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Target Tabungan",
-              style: TextStyle(fontWeight: FontWeight.w600)),
-          SizedBox(height: 8),
-          Text("Coming soon...", style: TextStyle(color: Colors.black45)),
-        ],
-      ),
-    );
-  }
+  final goals = context.watch<SavingGoalProvider>().goals;
 
-  Widget _buildAccountsCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Akun Saya",
-              style: TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          _accRow("Rekening Utama", "Bank Mandiri", "0"),
-          const Divider(),
-          _accRow("Tabungan", "Bank BCA", "0"),
-        ],
-      ),
-    );
-  }
+  return Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Target Tabungan",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add_circle, color: Color(0xFF2F4CFF)),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const AddGoalModal(),
+                );
+              },
+            )
+          ],
+        ),
 
+        const SizedBox(height: 12),
+
+        if (goals.isEmpty)
+          const Text(
+            "Belum ada target. Tambahkan dengan tombol +",
+            style: TextStyle(color: Colors.black54),
+          ),
+
+        ...goals.map((g) {
+          final progress = (g.saved / g.target).clamp(0, 1.0).toDouble();
+
+          return InkWell(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => EditGoalModal(goal: g),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(g.title, style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 6),
+
+                LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: Colors.grey.shade300,
+                  color: Colors.blue,
+                ),
+
+                const SizedBox(height: 14),
+              ],
+            ),
+          );
+        }).toList(),
+      ],
+    ),
+  );
+}
+  
   Widget _accRow(String title, String subtitle, String amount) {
     return Row(
       children: [

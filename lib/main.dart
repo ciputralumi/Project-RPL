@@ -2,40 +2,52 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
+// MODELS
 import 'data/models/transaction_model.dart';
 import 'data/models/budget_model.dart';
-import 'data/models/account_model.dart'; // ← TAMBAH INI
+import 'data/models/account_model.dart';
+import 'data/models/saving_goal_model.dart';
 
+// PROVIDERS
+import 'providers/auth_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/budget_provider.dart';
 import 'providers/account_provider.dart';
+import 'providers/saving_goal_provider.dart';
+
+// UI
+import 'presentation/auth/login_page.dart';
 import 'presentation/main_navigation.dart';
 import 'themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Hive.initFlutter();
 
-  // REGISTER ADAPTERS
+  // REGISTER ADAPTERS (MASING-MASING HANYA SEKALI)
   Hive.registerAdapter(TransactionModelAdapter());
   Hive.registerAdapter(BudgetModelAdapter());
-  Hive.registerAdapter(AccountModelAdapter()); // ← FIX TERPENTING
+  Hive.registerAdapter(AccountModelAdapter());
+  Hive.registerAdapter(SavingGoalModelAdapter());
 
-  // OPEN BOXES
+  // OPEN BOXES (MASING-MASING HANYA SEKALI)
   await Hive.openBox<TransactionModel>('transactions');
   await Hive.openBox('settings');
   await Hive.openBox<BudgetModel>('budgets_box');
-  await Hive.openBox<AccountModel>('accounts_box'); // ← FIX WAJIB
+  await Hive.openBox<AccountModel>('accounts_box');
+  await Hive.openBox<SavingGoalModel>('saving_goals_box');
+  await Hive.openBox('user_box');
 
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => BudgetProvider()..init()),
         ChangeNotifierProvider(create: (_) => AccountProvider()..init()),
+        ChangeNotifierProvider(create: (_) => SavingGoalProvider()..init()),
       ],
       child: const MyApp(),
     ),
@@ -55,7 +67,22 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.light(),
       themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: const MainNavigation(),
+      home: const SplashRouter(),
     );
+  }
+}
+
+class SplashRouter extends StatelessWidget {
+  const SplashRouter({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
+    if (auth.isLoggedIn) {
+      return const MainNavigation();
+    } else {
+      return const LoginPage();
+    }
   }
 }
