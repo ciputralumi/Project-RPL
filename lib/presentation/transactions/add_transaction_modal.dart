@@ -6,6 +6,8 @@ import '../../data/models/transaction_model.dart';
 import '../../providers/transaction_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/account_provider.dart';
+import '../../providers/saving_goal_provider.dart';
+import '../../providers/saving_log_provider.dart';
 import '../../themes/category_colors.dart';
 
 class AddTransactionModal extends StatefulWidget {
@@ -308,13 +310,24 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
 
     final txProvider = context.read<TransactionProvider>();
     final accProvider = context.read<AccountProvider>();
+    final savingGoalProvider = context.read<SavingGoalProvider>();
+    final savingLogProvider = context.read<SavingLogProvider>();
 
-    await txProvider.addTransaction(
-      newTx,
-      accountProvider: accProvider,
-    );
+    try {
+      await txProvider.addTransaction(
+        newTx,
+        accountProvider: accProvider,
+        savingGoalProvider: savingGoalProvider,
+        savingLogProvider: savingLogProvider,
+      );
 
-    Navigator.pop(context);
+      Navigator.pop(context);
+    } catch (e) {
+      // tampilkan error ke user kalo saldo tidak mencukupi atau error lain
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
   }
 
   // =============================

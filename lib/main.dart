@@ -7,6 +7,7 @@ import 'data/models/transaction_model.dart';
 import 'data/models/budget_model.dart';
 import 'data/models/account_model.dart';
 import 'data/models/saving_goal_model.dart';
+import 'data/models/saving_log_model.dart';
 
 // PROVIDERS
 import 'providers/auth_provider.dart';
@@ -15,6 +16,7 @@ import 'providers/settings_provider.dart';
 import 'providers/budget_provider.dart';
 import 'providers/account_provider.dart';
 import 'providers/saving_goal_provider.dart';
+import 'providers/saving_log_provider.dart';
 
 // UI
 import 'presentation/auth/login_page.dart';
@@ -24,21 +26,33 @@ import 'themes/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  await Hive.openBox<SavingLogModel>('saving_logs_box');
 
-  // REGISTER ADAPTERS (MASING-MASING HANYA SEKALI)
+  // -------------------------------
+  // REGISTER ADAPTERS (WAJIB)
+  // -------------------------------
   Hive.registerAdapter(TransactionModelAdapter());
   Hive.registerAdapter(BudgetModelAdapter());
   Hive.registerAdapter(AccountModelAdapter());
   Hive.registerAdapter(SavingGoalModelAdapter());
+  Hive.registerAdapter(SavingLogModelAdapter());
+  Hive.registerAdapter(SavingLogModelAdapter());
 
-  // OPEN BOXES (MASING-MASING HANYA SEKALI)
+
+  // -------------------------------
+  // OPEN BOXES
+  // -------------------------------
   await Hive.openBox<TransactionModel>('transactions');
   await Hive.openBox('settings');
   await Hive.openBox<BudgetModel>('budgets_box');
   await Hive.openBox<AccountModel>('accounts_box');
   await Hive.openBox<SavingGoalModel>('saving_goals_box');
+  await Hive.openBox<SavingLogModel>('saving_logs_box');  // ⭐ WAJIB ada
   await Hive.openBox('user_box');
 
+  // -------------------------------
+  // MULTIPROVIDER
+  // -------------------------------
   runApp(
     MultiProvider(
       providers: [
@@ -48,6 +62,10 @@ void main() async {
         ChangeNotifierProvider(create: (_) => BudgetProvider()..init()),
         ChangeNotifierProvider(create: (_) => AccountProvider()..init()),
         ChangeNotifierProvider(create: (_) => SavingGoalProvider()..init()),
+        
+
+        // ⭐ inilah yang kemarin bikin error — sekarang kita tambahkan
+        ChangeNotifierProvider(create: (_) => SavingLogProvider()..init()),
       ],
       child: const MyApp(),
     ),

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/account_provider.dart';
 import '../../data/models/account_model.dart';
+import '../goals/goals_page.dart';
+import '../goals/goal_detail_page.dart';
 
 
 import '../settings/settings_page.dart';
@@ -744,67 +746,178 @@ class _DashboardPageState extends State<DashboardPage>
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
       boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 8,
+        )
       ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ---------------- HEADER ----------------
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               "Target Tabungan",
-              style: TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
-            IconButton(
-              icon: const Icon(Icons.add_circle, color: Color(0xFF2F4CFF)),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => const AddGoalModal(),
-                );
-              },
-            )
+
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const GoalsPage()),
+                    );
+                  },
+                  child: const Text(
+                    "Lihat Semua",
+                    style: TextStyle(
+                      color: Color(0xFF2F4CFF),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+                IconButton(
+                  icon: const Icon(Icons.add_circle, color: Color(0xFF2F4CFF)),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const AddGoalModal(),
+                    );
+                  },
+                ),
+              ],
+            ),
           ],
         ),
 
         const SizedBox(height: 12),
 
+        // ---------------- NO GOAL MESSAGE ----------------
         if (goals.isEmpty)
           const Text(
             "Belum ada target. Tambahkan dengan tombol +",
             style: TextStyle(color: Colors.black54),
           ),
 
+        // ---------------- GOALS LIST ----------------
         ...goals.map((g) {
           final progress = (g.saved / g.target).clamp(0, 1.0).toDouble();
+          final percentage = (progress * 100).toStringAsFixed(0);
+
+          Color barColor;
+          if (progress < 0.3) {
+            barColor = Colors.red;
+          } else if (progress < 0.7) {
+            barColor = Colors.orange;
+          } else {
+            barColor = Colors.green;
+          }
+
+          final remaining = g.target - g.saved;
 
           return InkWell(
             onTap: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => EditGoalModal(goal: g),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GoalDetailPage(goal: g),
+                ),
               );
             },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(g.title, style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 6),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // TITLE & %
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        g.title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        "$percentage%",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
 
-                LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.grey.shade300,
-                  color: Colors.blue,
-                ),
+                  const SizedBox(height: 10),
 
-                const SizedBox(height: 14),
-              ],
+                  // PROGRESS BAR
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 7,
+                      backgroundColor: Colors.grey.shade300,
+                      color: barColor,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // MONEY DETAILS
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Terkumpul: Rp ${g.saved.toStringAsFixed(0)}",
+                        style: const TextStyle(fontSize: 12, color: Colors.black87),
+                      ),
+                      Text(
+                        "Target: Rp ${g.target.toStringAsFixed(0)}",
+                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  Text(
+                    "Sisa: Rp ${remaining.toStringAsFixed(0)}",
+                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                  ),
+
+                  if (g.deadline != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      "Deadline: ${g.deadline!.toLocal().toString().split(' ')[0]}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.blueGrey,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           );
         }).toList(),
@@ -812,6 +925,7 @@ class _DashboardPageState extends State<DashboardPage>
     ),
   );
 }
+
   
   Widget _accRow(String title, String subtitle, String amount) {
     return Row(

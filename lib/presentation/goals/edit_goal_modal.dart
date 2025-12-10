@@ -102,7 +102,7 @@ class _EditGoalModalState extends State<EditGoalModal> {
                       deadline: widget.goal.deadline,
                     );
 
-                    await provider.updateGoal(key, updated);
+                    await provider.editGoal(key, updated);
 
                     if (_addSavingCtrl.text.isNotEmpty) {
                       final amount = double.tryParse(_addSavingCtrl.text);

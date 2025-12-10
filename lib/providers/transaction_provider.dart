@@ -3,15 +3,18 @@ import 'package:hive/hive.dart';
 
 import '../data/models/transaction_model.dart';
 import '../providers/account_provider.dart';
+import '../providers/saving_goal_provider.dart';
+import '../providers/saving_log_provider.dart';
+import '../data/models/saving_log_model.dart';
+import '../data/models/saving_goal_model.dart';
 
 class TransactionProvider extends ChangeNotifier {
   final Box<TransactionModel> _box = Hive.box<TransactionModel>('transactions');
 
-  // Filter: 0 = Daily, 1 = Weekly, 2 = Monthly, 3 = Annual
-  int filterIndex = 2;
+  int filterIndex = 2; // 0=daily,1=weekly,2=monthly,3=annual
 
   // -------------------------------------------------------------
-  // LIST ALL TRANSACTIONS (Newest first)
+  // LIST ALL TRANSACTIONS
   // -------------------------------------------------------------
   List<TransactionModel> get allTransactions {
     final list = _box.values.toList();
@@ -32,16 +35,12 @@ class TransactionProvider extends ChangeNotifier {
           return tx.date.year == now.year &&
               tx.date.month == now.month &&
               tx.date.day == now.day;
-
         case 1:
           return now.difference(tx.date).inDays <= 7;
-
         case 2:
           return tx.date.year == now.year && tx.date.month == now.month;
-
         case 3:
           return tx.date.year == now.year;
-
         default:
           return true;
       }
@@ -69,26 +68,51 @@ class TransactionProvider extends ChangeNotifier {
     return bal < 0 ? 0 : bal;
   }
 
-
   // -------------------------------------------------------------
-  // ADD TRANSACTION ✓ AUTO APPLY BALANCE
+  // ADD TRANSACTION + APPLY BALANCE + AUTO-SAVING
   // -------------------------------------------------------------
   Future<void> addTransaction(
     TransactionModel tx, {
     required AccountProvider accountProvider,
+    SavingGoalProvider? savingGoalProvider,
+    SavingLogProvider? savingLogProvider,
   }) async {
-    // Simpan ke Hive → dapat hiveKey
-    final hiveKey = await _box.add(tx);
+    try {
+      await accountProvider.applyTransaction(tx);
 
-    // Jangan set tx.key, biarkan Hive yang handle
+      // auto saving — jika kategori == goal.title
+      if (!tx.isIncome && savingGoalProvider != null) {
+        SavingGoalModel? matched;
+        for (final g in savingGoalProvider.goals) {
+          if (g.title == tx.category) matched = g;
+        }
 
-    await accountProvider.applyTransaction(tx);
+        if (matched != null) {
+          final int goalKey = matched.key as int;
 
-    notifyListeners();
+          await savingGoalProvider.addSaving(goalKey, tx.amount);
+
+          if (savingLogProvider != null) {
+            await savingLogProvider.addLog(
+              SavingLogModel(
+                goalKey: goalKey,
+                amount: tx.amount,
+                date: tx.date,
+              ),
+            );
+          }
+        }
+      }
+
+      await _box.add(tx);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   // -------------------------------------------------------------
-  // DELETE TRANSACTION ✓ AUTO REVERT BALANCE
+  // DELETE TRANSACTION
   // -------------------------------------------------------------
   Future<void> deleteTransaction(
     int key, {
@@ -98,14 +122,12 @@ class TransactionProvider extends ChangeNotifier {
     if (tx == null) return;
 
     await accountProvider.revertTransaction(tx);
-
     await _box.delete(key);
-
     notifyListeners();
   }
 
   // -------------------------------------------------------------
-  // UPDATE TRANSACTION ✓ AUTO ADJUST ACCOUNT BALANCE
+  // UPDATE TRANSACTION
   // -------------------------------------------------------------
   Future<void> updateTransaction(
     int key,
@@ -113,46 +135,45 @@ class TransactionProvider extends ChangeNotifier {
     required AccountProvider accountProvider,
     required TransactionModel oldTx,
   }) async {
-    await accountProvider.updateTransaction(
-      oldTx: oldTx,
-      newTx: newTx,
-    );
+    await accountProvider.revertTransaction(oldTx);
 
-    await _box.put(key, newTx);
-
-    notifyListeners();
+    try {
+      await accountProvider.applyTransaction(newTx);
+      await _box.put(key, newTx);
+      notifyListeners();
+    } catch (e) {
+      await accountProvider.applyTransaction(oldTx);
+      rethrow;
+    }
   }
 
+  // -------------------------------------------------------------
+  // UNDO TRANSFER (FIXED & CLEAN)
+  // -------------------------------------------------------------
   Future<void> undoTransfer({
     required String groupId,
     required AccountProvider accountProvider,
   }) async {
-    // Ambil dua transaksi yang termasuk dalam transfer group
     final matches =
-        _box.values.where((t) => t.transferGroupId == groupId).toList();
+        _box.values.where((tx) => tx.transferGroupId == groupId).toList();
 
-    // Transfer valid harus ada tepat 2 transaksi
     if (matches.length != 2) return;
 
     for (final tx in matches) {
       final key = tx.key as int;
 
-      // kembalikan saldo akun
       await accountProvider.revertTransaction(tx);
-
-      // hapus dari Hive
       await _box.delete(key);
     }
 
-    // Tidak ada _transactions → langsung notifyListeners
     notifyListeners();
   }
 
-// =======================================================
-// UPDATE TRANSFER GROUP
-// =======================================================
+  // -------------------------------------------------------------
+  // UPDATE TRANSFER GROUP
+  // -------------------------------------------------------------
   Future<void> updateTransferGroup({
-    required String transferGroupId, // <-- ganti int → String
+    required String transferGroupId,
     required TransactionModel oldOutTx,
     required TransactionModel oldInTx,
     required double newAmount,
@@ -162,11 +183,9 @@ class TransactionProvider extends ChangeNotifier {
     required DateTime newDate,
     required AccountProvider accountProvider,
   }) async {
-    // Step 1 — Undo dua transaksi lama
     await accountProvider.revertTransaction(oldOutTx);
     await accountProvider.revertTransaction(oldInTx);
 
-    // Step 2 — Create transaksi baru OUT
     final newOutTx = TransactionModel(
       amount: newAmount,
       isIncome: false,
@@ -174,10 +193,9 @@ class TransactionProvider extends ChangeNotifier {
       note: newNote,
       date: newDate,
       accountId: newFromId,
-      transferGroupId: transferGroupId, // now String
+      transferGroupId: transferGroupId,
     );
 
-    // Step 3 — Create transaksi baru IN
     final newInTx = TransactionModel(
       amount: newAmount,
       isIncome: true,
@@ -185,24 +203,26 @@ class TransactionProvider extends ChangeNotifier {
       note: newNote,
       date: newDate,
       accountId: newToId,
-      transferGroupId: transferGroupId, // now String
+      transferGroupId: transferGroupId,
     );
 
-    // Replace OUT
-    await _box.put(oldOutTx.key, newOutTx);
+    try {
+      await _box.put(oldOutTx.key, newOutTx);
+      await _box.put(oldInTx.key, newInTx);
 
-    // Replace IN
-    await _box.put(oldInTx.key, newInTx);
+      await accountProvider.applyTransaction(newOutTx);
+      await accountProvider.applyTransaction(newInTx);
 
-    // Apply saldo
-    await accountProvider.applyTransaction(newOutTx);
-    await accountProvider.applyTransaction(newInTx);
-
-    notifyListeners();
+      notifyListeners();
+    } catch (e) {
+      await accountProvider.applyTransaction(oldOutTx);
+      await accountProvider.applyTransaction(oldInTx);
+      rethrow;
+    }
   }
 
   // -------------------------------------------------------------
-  // ANALYTICS (unchanged)
+  // ANALYTICS
   // -------------------------------------------------------------
   Map<String, double> groupByMonth() {
     final Map<String, double> result = {};
@@ -213,28 +233,20 @@ class TransactionProvider extends ChangeNotifier {
     }
 
     return Map.fromEntries(
-      result.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
-    );
+        result.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
   }
 
   Map<String, double> groupByWeek() {
     final Map<String, double> result = {};
 
     for (final tx in allTransactions) {
-      final int week = ((tx.date.day - 1) / 7).floor() + 1;
+      final week = ((tx.date.day - 1) / 7).floor() + 1;
       final key = "Minggu $week";
-
-      result.update(key, (prev) => prev + tx.amount, ifAbsent: () => tx.amount);
+      result.update(key, (prev) => prev + tx.amount,
+          ifAbsent: () => tx.amount);
     }
 
-    return Map.fromEntries(
-      result.entries.toList()
-        ..sort((a, b) {
-          final ai = int.parse(a.key.replaceAll("Minggu ", ""));
-          final bi = int.parse(b.key.replaceAll("Minggu ", ""));
-          return ai.compareTo(bi);
-        }),
-    );
+    return result;
   }
 
   Map<String, double> groupByCategory() {
@@ -245,11 +257,12 @@ class TransactionProvider extends ChangeNotifier {
           ifAbsent: () => tx.amount);
     }
 
-    return Map.fromEntries(
-      result.entries.toList()..sort((a, b) => b.value.compareTo(a.value)),
-    );
+    return result;
   }
 
+  // -------------------------------------------------------------
+  // MONTH NAME HELPER (FIXED)
+  // -------------------------------------------------------------
   String _monthName(int month) {
     const names = [
       "Jan",

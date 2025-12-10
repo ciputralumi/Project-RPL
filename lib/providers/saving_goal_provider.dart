@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+
 import '../data/models/saving_goal_model.dart';
 
 class SavingGoalProvider extends ChangeNotifier {
@@ -14,31 +15,41 @@ class SavingGoalProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // -------------------------------
   // ADD GOAL
-  Future<void> add(SavingGoalModel g) async {
+  // -------------------------------
+  Future<void> addGoal(SavingGoalModel g) async {
     await _box.add(g);
     notifyListeners();
   }
 
-  // UPDATE GOAL
-  Future<void> updateGoal(int key, SavingGoalModel updated) async {
-    await _box.put(key, updated);
+  // -------------------------------
+  // EDIT GOAL
+  // -------------------------------
+  Future<void> editGoal(int key, SavingGoalModel g) async {
+    await _box.put(key, g);
     notifyListeners();
   }
 
+  // -------------------------------
   // DELETE GOAL
+  // -------------------------------
   Future<void> deleteGoal(int key) async {
     await _box.delete(key);
     notifyListeners();
   }
 
-  // ADD SAVED AMOUNT
+  // -------------------------------
+  // ADD SAVING AMOUNT
+  // -------------------------------
   Future<void> addSaving(int key, double amount) async {
-    final g = _box.get(key);
-    if (g == null) return;
+    final goal = _box.get(key);
 
-    g.saved += amount;
-    await g.save();
+    if (goal == null) return;
+
+    goal.saved += amount;
+    await goal.save();
+
     notifyListeners();
   }
 }

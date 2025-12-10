@@ -61,7 +61,7 @@ class _AddGoalModalState extends State<AddGoalModal> {
                   target: double.parse(_targetCtrl.text),
                 );
 
-                context.read<SavingGoalProvider>().add(goal);
+                context.read<SavingGoalProvider>().addGoal(goal);
                 Navigator.pop(context);
               },
               child: const Text("Simpan"),
