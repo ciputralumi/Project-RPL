@@ -81,10 +81,7 @@ class TransactionProvider extends ChangeNotifier {
         .fold(0.0, (a, b) => a + b.amount);
   }
   //RESET
-  Future<void> clearAllTransactions() async {
-    await _box.clear();
-    notifyListeners();
-  }
+
 
 
   // -------------------------------------------------------------
@@ -103,6 +100,36 @@ class TransactionProvider extends ChangeNotifier {
 
     notifyListeners();
   }
+  // ============================================================
+// CLEAR EVERYTHING (RESET SALDO + HAPUS SEMUA TRANSAKSI)
+// ============================================================
+  Future<void> clearEverything({
+    required AccountProvider accountProvider,
+  }) async {
+  // Reset saldo semua akun menjadi 0
+  for (final acc in accountProvider.accounts) {
+    final key = acc.key as int;
+
+    final updated = AccountModel(
+      name: acc.name,
+      type: acc.type,
+      balance: 0,
+    );
+
+    await accountProvider.updateAccount(key, updated);
+  }
+
+  // Hapus semua transaksi
+    await _box.clear();
+
+    notifyListeners();
+  }
+
+
+void reloadTransactions() {
+  notifyListeners();
+}
+
 
   // -------------------------------------------------------------
   // DELETE TRANSACTION ✓ AUTO REVERT BALANCE

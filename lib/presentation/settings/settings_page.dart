@@ -8,9 +8,15 @@ import '../../providers/auth_provider.dart';
 import '../../themes/category_colors.dart';
 import '../profile/profile_page.dart';
 import '../auth/login_page.dart';
+import '../../providers/account_provider.dart';
+import '../../providers/transaction_provider.dart';
+import '../../providers/saving_goal_provider.dart';
+
+
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
+  
 
   @override
   Widget build(BuildContext context) {
@@ -108,19 +114,19 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
 
-          //const SizedBox(height: 24),
-          //_sectionTitle("Appearance"),
+          const SizedBox(height: 24),
+          _sectionTitle("Appearance"),
 
           // DARK MODE
-          //_settingCard(
-          //  title: "Dark Mode",
-          //  trailing: Switch(
-          //    value: settings.isDarkMode,
-          //    activeColor: Colors.white,
-          //    activeTrackColor: Colors.black87,
-          //    onChanged: (v) => settings.toggleDarkMode(v),
-          //  ),
-          //),
+          _settingCard(
+            title: "Dark Mode",
+            trailing: Switch(
+              value: settings.isDarkMode,
+              activeColor: Colors.white,
+              activeTrackColor: Colors.black87,
+              onChanged: (v) => settings.toggleDarkMode(v),
+            ),
+          ),
 
           const SizedBox(height: 20),
           _sectionTitle("Currency"),
@@ -460,16 +466,28 @@ class SettingsPage extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Text("Batal"),
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                settings.clearAllTransactions();
-                settings.clearAllAccounts();
-                settings.clearAllBudgets();
-                Navigator.pop(context);
-              },
-              child: const Text("Reset"),
-            ),
+           ElevatedButton(
+  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+  onPressed: () async {
+    await settings.resetAllData();
+
+    // =============================
+    // FORCE REFRESH SEMUA PROVIDER
+    // =============================
+    Provider.of<AccountProvider>(context, listen: false).reloadAccounts();
+    Provider.of<TransactionProvider>(context, listen: false).notifyListeners();
+    Provider.of<SavingGoalProvider>(context, listen: false).reloadGoals();
+
+    Navigator.pop(context);
+
+    // OPTIONAL: Snackbar biar user tahu data selesai direset
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Semua data berhasil direset")),
+    );
+  },
+  child: const Text("Reset"),
+),
+
           ],
         );
       },

@@ -6,6 +6,7 @@ import '../data/models/transaction_model.dart';
 
 class AccountProvider extends ChangeNotifier {
   static const String boxName = "accounts_box";
+final Box<AccountModel> accountBox = Hive.box<AccountModel>('accounts_box');
 
   late Box<AccountModel> _box;
   List<AccountModel> _accounts = [];
@@ -167,6 +168,10 @@ class AccountProvider extends ChangeNotifier {
 // -------------------------------------------------------
 double get totalBalance {
   return _accounts.fold(0.0, (sum, acc) => sum + acc.balance);
+}
+void reloadAccounts() {
+  _accounts = accountBox.values.toList();
+  notifyListeners();
 }
 
 }
