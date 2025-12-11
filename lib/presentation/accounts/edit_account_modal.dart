@@ -27,7 +27,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
   void initState() {
     super.initState();
     nameC = TextEditingController(text: widget.acc.name);
-    bankC = TextEditingController(text: widget.acc.bank);
+    bankC = TextEditingController(text: widget.acc.type);
     balanceC = TextEditingController(text: widget.acc.balance.toString());
   }
 
@@ -114,7 +114,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
   Future<void> _save() async {
     final updated = AccountModel(
       name: nameC.text,
-      bank: bankC.text,
+      type: bankC.text,
       balance: double.tryParse(balanceC.text) ?? 0,
     );
 

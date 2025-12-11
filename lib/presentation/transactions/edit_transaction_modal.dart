@@ -39,6 +39,13 @@ class _EditTransactionModalState extends State<EditTransactionModal> {
   }
 
   @override
+  void dispose() {
+    noteC.dispose();
+    amountC.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final categories = settings.categories;
@@ -71,8 +78,10 @@ class _EditTransactionModalState extends State<EditTransactionModal> {
             ),
 
             const SizedBox(height: 20),
-            const Text("Edit Transaksi",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text(
+              "Edit Transaksi",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 20),
 
             // NOTE
@@ -93,9 +102,11 @@ class _EditTransactionModalState extends State<EditTransactionModal> {
             // AMOUNT
             TextField(
               controller: amountC,
-              keyboardType: TextInputType.number,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
-                labelText: "Jumlah (${settings.currencySymbol})",
+                labelText:
+                    "Jumlah (${settings.currencySymbol}${_format(settings.convert(widget.tx.amount))})",
                 filled: true,
                 fillColor: Colors.grey.shade100,
                 border: OutlineInputBorder(
@@ -108,11 +119,11 @@ class _EditTransactionModalState extends State<EditTransactionModal> {
 
             // ACCOUNT PICKER (with balance)
             DropdownButtonFormField<int>(
-              value: selectedAccountId,
+              initialValue: selectedAccountId,
               items: accounts.map((acc) {
                 final balance = _money(acc.balance, settings.currencySymbol);
 
-                return DropdownMenuItem(
+                return DropdownMenuItem<int>(
                   value: acc.key as int,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -166,10 +177,10 @@ class _EditTransactionModalState extends State<EditTransactionModal> {
 
             // CATEGORY PICKER
             DropdownButtonFormField<String>(
-              value: category,
+              initialValue: category,
               items: categories
                   .map(
-                    (c) => DropdownMenuItem(
+                    (c) => DropdownMenuItem<String>(
                       value: c,
                       child: Row(
                         children: [
@@ -188,7 +199,10 @@ class _EditTransactionModalState extends State<EditTransactionModal> {
                     ),
                   )
                   .toList(),
-              onChanged: (v) => setState(() => category = v!),
+              onChanged: (v) {
+                if (v == null) return;
+                setState(() => category = v);
+              },
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.grey.shade100,
@@ -294,8 +308,36 @@ class _EditTransactionModalState extends State<EditTransactionModal> {
     Navigator.pop(context);
   }
 
+  // FORMAT MONEY FOR DROPDOWN
   String _money(double amount, String symbol) {
     final f = NumberFormat("#,###", "id_ID");
     return "$symbol${f.format(amount)}";
+  }
+
+  // FIXED FORMATTER FOR LABEL
+  String _format(double x) {
+    if (x.isNaN || x.isInfinite) return "0,00";
+
+    String numString = x.abs().toStringAsFixed(2);
+    final parts = numString.split('.');
+    final integerPart = parts[0];
+    final decimalPart = parts.length > 1 ? parts[1] : '00';
+
+    final reversed = integerPart.split('').reversed.join();
+    final groups = <String>[];
+
+    for (int i = 0; i < reversed.length; i += 3) {
+      groups.add(
+        reversed.substring(i, i + 3 > reversed.length ? reversed.length : i + 3),
+      );
+    }
+
+    final formattedInt = groups
+        .map((e) => e.split('').reversed.join())
+        .toList()
+        .reversed
+        .join('.');
+
+    return "$formattedInt,$decimalPart";
   }
 }

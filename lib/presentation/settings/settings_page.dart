@@ -22,7 +22,7 @@ class SettingsPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF6F7FB),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFFF6F7FB),
+        backgroundColor: const Color(0xFF448AFF),
         foregroundColor: Colors.black87,
         title: const Text(
           "Settings",
@@ -108,19 +108,19 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
-          _sectionTitle("Appearance"),
+          //const SizedBox(height: 24),
+          //_sectionTitle("Appearance"),
 
           // DARK MODE
-          _settingCard(
-            title: "Dark Mode",
-            trailing: Switch(
-              value: settings.isDarkMode,
-              activeColor: Colors.white,
-              activeTrackColor: Colors.black87,
-              onChanged: (v) => settings.toggleDarkMode(v),
-            ),
-          ),
+          //_settingCard(
+          //  title: "Dark Mode",
+          //  trailing: Switch(
+          //    value: settings.isDarkMode,
+          //    activeColor: Colors.white,
+          //    activeTrackColor: Colors.black87,
+          //    onChanged: (v) => settings.toggleDarkMode(v),
+          //  ),
+          //),
 
           const SizedBox(height: 20),
           _sectionTitle("Currency"),
@@ -330,7 +330,7 @@ class SettingsPage extends StatelessWidget {
   // ================================
   // CARD DECORATION
   // ================================
-  BoxDecoration _cardDecoration() {
+  BoxDecoration _cardDecoration() { //() - > harus da isi st 
     return BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
@@ -450,22 +450,29 @@ class SettingsPage extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Reset Semua Data?"),
-        content: const Text(
-            "Semua transaksi akan dihapus dan tidak bisa dikembalikan."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              settings.clearAllTransactions();
-              Navigator.pop(context);
-            },
-            child: const Text("Reset"),
-          ),
-        ],
-      ),
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Reset Semua Data?"),
+          content: const Text(
+              "Semua transaksi akan dihapus dan tidak bisa dikembalikan."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Batal"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                settings.clearAllTransactions();
+                settings.clearAllAccounts();
+                settings.clearAllBudgets();
+                Navigator.pop(context);
+              },
+              child: const Text("Reset"),
+            ),
+          ],
+        );
+      },
     );
   }
 }

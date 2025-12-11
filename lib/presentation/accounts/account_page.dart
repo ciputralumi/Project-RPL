@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import '../../providers/settings_provider.dart';
 import '../../data/models/account_model.dart';
 import '../../providers/account_provider.dart';
+import 'dart:math';
 import 'account_editor.dart';
-import 'account_detail_page.dart'; // ➜ Tambahan penting
 
 class AccountsPage extends StatelessWidget {
   const AccountsPage({super.key});
+
+
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AccountProvider>(
       builder: (_, prov, __) {
-        final accounts = prov.accounts;
+        final acc1 = prov.accounts;
+        final accounts = acc1
+            .where((acc) => acc.key != null)
+            .toList();
 
         return Scaffold(
           backgroundColor: const Color(0xFFF7F7FA),
@@ -23,7 +28,7 @@ class AccountsPage extends StatelessWidget {
               "Akun & Dompet",
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: Color(0xFF448AFF),
             elevation: 0,
             foregroundColor: Colors.black,
           ),
@@ -49,8 +54,7 @@ class AccountsPage extends StatelessWidget {
                   itemCount: accounts.length,
                   itemBuilder: (_, i) {
                     final acc = accounts[i];
-                    final keyId = accounts[i].key; // Hive key
-
+                    final keyId = acc.key as int;
                     return _accountCard(context, acc, keyId);
                   },
                 ),
@@ -63,99 +67,87 @@ class AccountsPage extends StatelessWidget {
   // ACCOUNT CARD COMPONENT
   // =============================================================
   Widget _accountCard(BuildContext context, AccountModel acc, int keyId) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AccountDetailPage(
-              account: acc,
-              accountKey: keyId,
+    final s = context.read<SettingsProvider>();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: const Color(0xFFE8F0FF),
+            child: const Icon(Icons.account_balance_wallet,
+                color: Color(0xFF2F4CFF)),
+          ),
+          const SizedBox(width: 14),
+
+          // TEXT SECTION
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  acc.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  acc.type,
+                  style: const TextStyle(
+                    color: Colors.black45,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: const Color(0xFFE8F0FF),
-              child: const Icon(Icons.account_balance_wallet,
-                  color: Color(0xFF2F4CFF)),
-            ),
-            const SizedBox(width: 14),
 
-            // TEXT SECTION
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    acc.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    acc.type, // FIX: sebelumnya acc.type (yang tidak ada)
-                    style: const TextStyle(
-                      color: Colors.black45,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
+          // BALANCE
+          Text(
+            "${s.currencySymbol}${_fmt(s.convert(acc.balance))}",
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF2F4CFF),
             ),
+          ),
 
-            // BALANCE
-            Text(
-              "Rp ${_fmt(acc.balance)}",
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF2F4CFF),
-              ),
-            ),
+          const SizedBox(width: 6),
 
-            const SizedBox(width: 6),
+          // EDIT BUTTON
+          IconButton(
+            icon: const Icon(Icons.edit, size: 20),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                builder: (_) => AccountEditor(
+                  existing: acc,
+                  keyId: keyId,
+                ),
+              );
+            },
+          ),
 
-            // EDIT BUTTON
-            IconButton(
-              icon: const Icon(Icons.edit, size: 20),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  backgroundColor: Colors.transparent,
-                  isScrollControlled: true,
-                  builder: (_) => AccountEditor(
-                    existing: acc,
-                    keyId: keyId,
-                  ),
-                );
-              },
-            ),
-
-            // DELETE BUTTON
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _confirmDelete(context, keyId),
-            ),
-          ],
-        ),
+          // DELETE BUTTON
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: () => _confirmDelete(context, keyId),
+          ),
+        ],
       ),
     );
   }
@@ -227,8 +219,31 @@ Pastikan tidak digunakan di transaksi jika ingin menjaga histori yang rapi.
   // FORMAT NUMBER
   // =============================================================
   String _fmt(double x) {
-    return x
-        .toStringAsFixed(0)
-        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => '.');
+    if (x.isNaN || x.isInfinite) return "0,00"; 
+
+    // SELALU format ke 2 angka desimal
+    String numString = x.abs().toStringAsFixed(2); 
+    
+    final parts = numString.split('.');
+    final integerPart = parts[0];
+    final decimalPart = parts.length > 1 ? parts[1] : '00'; 
+
+    // Logika Pemisah Ribuan
+    final s = integerPart.split('').reversed.join();
+    final separatedParts = <String>[];
+
+    for (int i = 0; i < s.length; i += 3) {
+      separatedParts.add(s.substring(i, min(i + 3, s.length)));
+    }
+
+    String formattedInteger = separatedParts
+        .map((e) => e.split('').reversed.join())
+        .toList()
+        .reversed
+        .join('.'); // Titik (.) sebagai pemisah ribuan
+        
+    // Gabungkan dengan koma (,) sebagai pemisah desimal
+    return "$formattedInteger,$decimalPart"; 
   }
+  
 }

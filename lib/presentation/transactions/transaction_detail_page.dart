@@ -162,10 +162,10 @@ class TransactionDetailPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-              width: 110,
-              child: Text(
-                title,
-                style: const TextStyle(
+            width: 110,
+            child: Text(
+              title,
+              style: const TextStyle(
                     fontWeight: FontWeight.w600, color: Colors.black54),
               )),
           Expanded(

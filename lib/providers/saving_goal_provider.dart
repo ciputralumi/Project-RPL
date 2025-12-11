@@ -14,25 +14,35 @@ class SavingGoalProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ADD GOAL
+  // ----- Read helpers -----
+  SavingGoalModel? getGoal(int key) {
+    return _box.get(key);
+  }
+
+  // ----- Add / Update / Delete -----
   Future<void> add(SavingGoalModel g) async {
     await _box.add(g);
     notifyListeners();
   }
 
-  // UPDATE GOAL
+  // alias used by some UI files: addGoal
+  Future<void> addGoal(SavingGoalModel g) => add(g);
+
   Future<void> updateGoal(int key, SavingGoalModel updated) async {
     await _box.put(key, updated);
     notifyListeners();
   }
 
-  // DELETE GOAL
+  // alias used by some UI files: editGoal
+  Future<void> editGoal(int key, SavingGoalModel updated) =>
+      updateGoal(key, updated);
+
   Future<void> deleteGoal(int key) async {
     await _box.delete(key);
     notifyListeners();
   }
 
-  // ADD SAVED AMOUNT
+  // ----- Business: add saved amount -----
   Future<void> addSaving(int key, double amount) async {
     final g = _box.get(key);
     if (g == null) return;
@@ -41,4 +51,10 @@ class SavingGoalProvider extends ChangeNotifier {
     await g.save();
     notifyListeners();
   }
+
+  // DELETE ALL
+  Future<void> clearAllGoals() async {
+    await _box.clear();
+    notifyListeners();
+ }
 }

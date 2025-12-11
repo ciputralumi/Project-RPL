@@ -123,45 +123,22 @@ class _LoginPageState extends State<LoginPage>
               children: [
                 // ===================== HEADER =====================
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2B6BFF),
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(40),
-                      bottomRight: Radius.circular(40),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          color: Colors.white,
-                          size: 48,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        "Finance Manager",
-                        style: TextStyle(
-                          fontSize: 20,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        "Kelola keuangan Anda dengan mudah",
-                        style: TextStyle(color: Colors.white70),
-                      )
-                    ],
-                  ),
+  padding: const EdgeInsets.all(18),
+  decoration: BoxDecoration(
+    // Anda bisa pertahankan dekorasi lingkaran dan warna latar
+    color: Colors.white.withOpacity(0.2),
+    shape: BoxShape.circle,
+  ),
+  child: ClipRRect( // Tambahkan ClipRRect agar gambar berbentuk lingkaran
+    borderRadius: BorderRadius.circular(100),
+    child: Image.asset(
+      'assets/logo/app_icon.png', // Ganti dengan path logo Anda
+      width: 128, // Sesuaikan ukuran (sama seperti size Icon)
+      height: 128,
+      fit: BoxFit.cover, // Pastikan gambar mengisi area
+    ),
+  ),
+
                 ),
 
                 const SizedBox(height: 20),

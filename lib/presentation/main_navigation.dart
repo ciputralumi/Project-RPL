@@ -1,12 +1,12 @@
-import 'package:finance_tracker_app/presentation/profile/profile_page.dart';
 import 'package:flutter/material.dart';
+import 'package:monethy/presentation/accounts/account_detail_page.dart';
 
 import 'dashboard/dashboard_page.dart';
 import 'transactions/transactions_page.dart';
 import 'budget/budget_page.dart';
 import 'analytic/analytics_page.dart';
 import 'accounts/account_page.dart';
-import 'settings/settings_page.dart';
+
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -23,47 +23,48 @@ class _MainNavigationState extends State<MainNavigation> {
     TransactionsPage(),
     BudgetPage(),
     AnalyticsPage(),
-    AccountsPage(),
-    SettingsPage(),
-    const ProfilePage(),
-    
+    AccountsPage()
   ];
 
   @override
   Widget build(BuildContext context) {
-    return HeroMode(
-      enabled: false, // disable semua Hero untuk mencegah error
-      child: Scaffold(
-        body: _pages[currentIndex],
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: currentIndex,
-          onTap: (i) => setState(() => currentIndex = i),
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: Colors.deepPurple,
-          unselectedItemColor: Colors.grey,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: "Home",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.list),
-              label: "Transaksi",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.wallet),
-              label: "Anggaran",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.analytics),
-              label: "Analitik",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet), // ⬅️ akun
-              label: "Akun",
-            ),
-          ],
-        ),
+    return Scaffold(
+      body: _pages[currentIndex],
+
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentIndex,
+        onDestinationSelected: (i) => setState(() => currentIndex = i),
+
+        animationDuration: const Duration(milliseconds: 300),
+        height: 72,
+
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: "Home",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list),
+            label: "Transaksi",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.wallet_outlined),
+            selectedIcon: Icon(Icons.wallet),
+            label: "Anggaran",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.analytics_outlined),
+            selectedIcon: Icon(Icons.analytics),
+            label: "Analitik",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet),
+            label: "Akun",
+          ),
+        ],
       ),
     );
   }

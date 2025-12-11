@@ -18,9 +18,9 @@ class _AddGoalModalState extends State<AddGoalModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Form(
@@ -61,7 +61,7 @@ class _AddGoalModalState extends State<AddGoalModal> {
                   target: double.parse(_targetCtrl.text),
                 );
 
-                context.read<SavingGoalProvider>().add(goal);
+                context.read<SavingGoalProvider>().addGoal(goal);
                 Navigator.pop(context);
               },
               child: const Text("Simpan"),

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // MODELS
 import 'data/models/transaction_model.dart';
 import 'data/models/budget_model.dart';
 import 'data/models/account_model.dart';
 import 'data/models/saving_goal_model.dart';
+import 'data/models/saving_log_model.dart';
 
 // PROVIDERS
 import 'providers/auth_provider.dart';
@@ -15,6 +17,7 @@ import 'providers/settings_provider.dart';
 import 'providers/budget_provider.dart';
 import 'providers/account_provider.dart';
 import 'providers/saving_goal_provider.dart';
+import 'providers/saving_log_provider.dart';
 
 // UI
 import 'presentation/auth/login_page.dart';
@@ -23,20 +26,29 @@ import 'themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    print('Warning: .env file not found');
+  }
+
   await Hive.initFlutter();
 
-  // REGISTER ADAPTERS (MASING-MASING HANYA SEKALI)
+  // REGISTER ADAPTERS
   Hive.registerAdapter(TransactionModelAdapter());
   Hive.registerAdapter(BudgetModelAdapter());
   Hive.registerAdapter(AccountModelAdapter());
   Hive.registerAdapter(SavingGoalModelAdapter());
+  Hive.registerAdapter(SavingLogModelAdapter());   // <-- WAJIB
 
-  // OPEN BOXES (MASING-MASING HANYA SEKALI)
+  // OPEN BOXES
   await Hive.openBox<TransactionModel>('transactions');
   await Hive.openBox('settings');
   await Hive.openBox<BudgetModel>('budgets_box');
   await Hive.openBox<AccountModel>('accounts_box');
   await Hive.openBox<SavingGoalModel>('saving_goals_box');
+  await Hive.openBox<SavingLogModel>('saving_logs_box');   // <-- WAJIB
   await Hive.openBox('user_box');
 
   runApp(
@@ -48,6 +60,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => BudgetProvider()..init()),
         ChangeNotifierProvider(create: (_) => AccountProvider()..init()),
         ChangeNotifierProvider(create: (_) => SavingGoalProvider()..init()),
+        ChangeNotifierProvider(create: (_) => SavingLogProvider()..init()), // <-- FIX
       ],
       child: const MyApp(),
     ),
@@ -63,10 +76,10 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Finance Tracker',
+      title: 'Monethy',
       theme: AppTheme.light(),
-      darkTheme: AppTheme.light(),
-      themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      //darkTheme: AppTheme.light(),
+     // themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: const SplashRouter(),
     );
   }

@@ -12,6 +12,10 @@ class AccountProvider extends ChangeNotifier {
 
   List<AccountModel> get accounts => _accounts;
 
+  double get totalAccountBalance {
+    return _accounts.fold(0.0, (sum, acc) => sum + acc.balance);
+  }
+
   // -------------------------------------------------------
   // INIT
   // -------------------------------------------------------

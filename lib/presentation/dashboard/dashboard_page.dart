@@ -5,18 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/account_provider.dart';
 import '../../data/models/account_model.dart';
+import '../goals/goals_page.dart';
+
 
 
 import '../settings/settings_page.dart';
 import '../../data/models/transaction_model.dart';
 import '../../providers/transaction_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../notifications/notification_page.dart';
 import '../transactions/add_transaction_modal.dart';
 import '../transactions/transactions_page.dart';
 import '../../themes/category_colors.dart';
 import '../../providers/saving_goal_provider.dart';
 import '../goals/add_goal_modal.dart';
 import '../goals/edit_goal_modal.dart';
+import '../../providers/account_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -49,6 +53,7 @@ class _DashboardPageState extends State<DashboardPage>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SettingsProvider>().fetchUsdRate();
       context.read<TransactionProvider>().setFilter(selectedPeriodIndex);
       _listAnimateController.forward();
       _donutController.forward();
@@ -78,9 +83,15 @@ class _DashboardPageState extends State<DashboardPage>
     final accountsTotalBalance = context.watch<AccountProvider>().totalBalance;
 
 
-    final income = tx.totalIncome;
-    final expense = tx.totalExpense;
-    final balance = tx.totalBalance;
+    final headerIncome = tx.totalIncomeAll;
+final headerExpense = tx.totalExpenseAll;
+
+final filteredIncome = tx.totalIncome;
+final filteredExpense = tx.totalExpense;
+
+    final accProvider = context.watch<AccountProvider>();
+    final balance = accProvider.totalAccountBalance;
+
     final transactions = tx.filteredTransactions;
 
     final Map<String, double> categoryTotals = {};
@@ -112,7 +123,7 @@ class _DashboardPageState extends State<DashboardPage>
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(balance, income, expense, s),
+            _buildHeader(balance, headerIncome, headerExpense, s),
             Expanded(
               child: SingleChildScrollView(
                 padding:
@@ -124,7 +135,7 @@ class _DashboardPageState extends State<DashboardPage>
                     const SizedBox(height: 14),
                     _buildSmartSummary(context, tx, s),
                     const SizedBox(height: 14),
-                    _buildSummaryCards(income, expense, balance, s),
+                    _buildSummaryCards(filteredIncome, filteredExpense, filteredIncome - filteredExpense, s),
                     const SizedBox(height: 14),
                     AnimatedBuilder(
                       animation: _donutController,
@@ -154,178 +165,113 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildAccountsCard(List<AccountModel> accounts) {
-  return Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.03),
-          blurRadius: 8,
-        )
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Akun Saya",
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 12),
-
-        if (accounts.isEmpty)
-          const Text(
-            "Belum ada akun. Tambahkan akun di menu 'Accounts'.",
-            style: TextStyle(color: Colors.black45, fontSize: 13),
-          )
-        else
-          ...accounts.map((acc) {
-            return Column(
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: const Color(0xFFE8F0FF),
-                      child: const Icon(
-                        Icons.account_balance_wallet,
-                        color: Color(0xFF2F4CFF),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            acc?.name ?? "-",
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            acc?.type ?? "-",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black45,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      acc.balance.toStringAsFixed(0),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    )
-                  ],
-                ),
-
-                const Divider(height: 22),
-              ],
-            );
-          }).toList(),
-      ],
-    ),
-  );
-}
-
 
   // -------------------------------------------------------------------
   // HEADER
   // -------------------------------------------------------------------
 
   Widget _buildHeader(
-      double balance, double income, double expense, SettingsProvider s) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3E7BFA), Color(0xFF2F4CFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    double balance,
+    double headerIncome,
+    double headerExpense,
+    SettingsProvider s,
+  ) {
+  return Container(
+    padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF3E7BFA), Color(0xFF2F4CFF)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.10),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        )
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Total Saldo",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.notifications_outlined,
+                  color: Colors.white),
+                ),
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SettingsPage(),
+                      ),
+                    );
+                  },
+                  icon:
+                      const Icon(Icons.settings_outlined, color: Colors.white),
+                ),
+              ],
+            )
+          ],
         ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.10),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Total Saldo",
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          duration: Duration(seconds: 1),
-                          content: Text("Belum ada notifikasi"),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Colors.white,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SettingsPage()),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.settings_outlined,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              )
-            ],
+
+        const SizedBox(height: 10),
+
+        // TOTAL SALDO — selalu total akun
+        Text(
+          "${s.currencySymbol}${_fmt(s.convert(balance))}",
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.surface,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
           ),
+        ),
 
-          const SizedBox(height: 10),
+        const SizedBox(height: 20),
 
-          Text(
-            "${s.currencySymbol}${_fmt(s.convert(balance))}",
-            style: const TextStyle(
-                color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-          ),
-
-          const SizedBox(height: 20),
-
-          Row(
-            children: [
-              Expanded(
-                child: _miniStatCard("Pemasukan", s.convert(income), Colors.green),
+        Row(
+          children: [
+            Expanded(
+              child: _miniStatCard(
+                "Income",
+                s.convert(headerIncome),
+                Colors.green,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _miniStatCard("Pengeluaran", s.convert(expense), Colors.red),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _miniStatCard(
+                "Expense",
+                s.convert(headerExpense),
+                Colors.red,
               ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
+            ),
+          ],
+        )
+      ],
+    ),
+  );
+}
+
 
   Widget _miniStatCard(String title, double value, Color color) {
     return Container(
@@ -345,8 +291,8 @@ class _DashboardPageState extends State<DashboardPage>
             duration: const Duration(milliseconds: 800),
             builder: (_, val, __) => Text(
               _fmt(val),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.surface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -460,7 +406,7 @@ class _DashboardPageState extends State<DashboardPage>
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -491,7 +437,7 @@ class _DashboardPageState extends State<DashboardPage>
               Expanded(
                 child: _summaryTile(
                   "Bulan Ini",
-                  "${s.currencySymbol}${_fmt(thisMonthTotal)}",
+                  "${s.currencySymbol}${_fmt(s.convert(thisMonthTotal))}",
                   Colors.blue,
                 ),
               ),
@@ -499,7 +445,7 @@ class _DashboardPageState extends State<DashboardPage>
               Expanded(
                 child: _summaryTile(
                   "Bulan Lalu",
-                  "${s.currencySymbol}${_fmt(lastMonthTotal)}",
+                  "${s.currencySymbol}${_fmt(s.convert(lastMonthTotal))}",
                   Colors.grey,
                 ),
               ),
@@ -509,7 +455,7 @@ class _DashboardPageState extends State<DashboardPage>
           if (topCategory != "-")
             _summaryTile(
               "Kategori Tertinggi",
-              "$topCategory (${s.currencySymbol}${_fmt(topValue)})",
+              "$topCategory (${s.currencySymbol}${_fmt(s.convert(topValue))})",
               Colors.deepPurple,
             ),
         ],
@@ -552,7 +498,7 @@ class _DashboardPageState extends State<DashboardPage>
     double expense,
     double balance,
     SettingsProvider s,
-  ){
+  ) {
     return Row(
       children: [
         Expanded(
@@ -575,7 +521,7 @@ class _DashboardPageState extends State<DashboardPage>
           width: 88,
           height: 88,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(18),
             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
           ),
@@ -605,7 +551,7 @@ class _DashboardPageState extends State<DashboardPage>
       padding: const EdgeInsets.all(12),
       height: 88,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
@@ -635,101 +581,95 @@ class _DashboardPageState extends State<DashboardPage>
   // -------------------------------------------------------------------
 
   Widget _buildAnalyticsCard(
-  List<_PieSegment> segments,
-  double total,
-  double animValue,
-  SettingsProvider s,
-) {
-  return Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Pengeluaran per Kategori",
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
+    List<_PieSegment> segments,
+    double total,
+    double animValue,
+    SettingsProvider s,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
-        const SizedBox(height: 16),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Pengeluaran per Kategori",
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (segments.isEmpty || total == 0)
+            const _ShimmerPlaceholder(count: 3)
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _AnimatedDonut(
+                  segments,
+                  total,
+                  animValue: animValue,
+                  conversionRate: s.currencyFormat == 0 ? 1.0 : 0.000065,
+                  currencySymbol: s.currencySymbol,
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    children: segments.map((seg) {
+                      final color = CategoryColors.getColor(seg.label);
 
-        if (segments.isEmpty || total == 0)
-          const _ShimmerPlaceholder(count: 3)
-        else
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _AnimatedDonut(
-                segments,
-                total,
-                animValue: animValue,
-                conversionRate: s.currencyFormat == 0 ? 1.0 : 0.000065,  
-                currencySymbol: s.currencySymbol,
-              ),
-
-              const SizedBox(width: 20),
-
-              Expanded(
-                child: Column(
-                  children: segments.map((seg) {
-                    final color = CategoryColors.getColor(seg.label);
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          Expanded(
-                            child: Text(
-                              seg.label,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(4),
                               ),
                             ),
-                          ),
-
-                          Text(
-                            "${s.currencySymbol}${_fmt(s.convert(seg.value))}",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                seg.label,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
-                          )
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              )
-            ],
-          )
-      ],
-    ),
-  );
-}
-
+                            Text(
+                              "${s.currencySymbol}${_fmt(s.convert(seg.value))}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            )
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                )
+              ],
+            )
+        ],
+      ),
+    );
+  }
 
   // -------------------------------------------------------------------
   // GOALS & ACCOUNTS
@@ -741,70 +681,185 @@ class _DashboardPageState extends State<DashboardPage>
   return Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(14),
       boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 8,
+        )
       ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ---------------- HEADER ----------------
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               "Target Tabungan",
-              style: TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
-            IconButton(
-              icon: const Icon(Icons.add_circle, color: Color(0xFF2F4CFF)),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => const AddGoalModal(),
-                );
-              },
-            )
+
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const GoalsPage()),
+                    );
+                  },
+                  child: const Text(
+                    "Lihat Semua",
+                    style: TextStyle(
+                      color: Color(0xFF2F4CFF),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+                IconButton(
+                  icon: const Icon(Icons.add_circle, color: Color(0xFF2F4CFF)),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const AddGoalModal(),
+                    );
+                  },
+                ),
+              ],
+            ),
           ],
         ),
 
         const SizedBox(height: 12),
 
+        // ---------------- NO GOAL MESSAGE ----------------
         if (goals.isEmpty)
           const Text(
             "Belum ada target. Tambahkan dengan tombol +",
             style: TextStyle(color: Colors.black54),
           ),
 
+        // ---------------- GOALS LIST ----------------
         ...goals.map((g) {
           final progress = (g.saved / g.target).clamp(0, 1.0).toDouble();
+          final percentage = (progress * 100).toStringAsFixed(0);
+
+          Color barColor;
+          if (progress < 0.3) {
+            barColor = Colors.red;
+          } else if (progress < 0.7) {
+            barColor = Colors.orange;
+          } else {
+            barColor = Colors.green;
+          }
+
+          final remaining = g.target - g.saved;
 
           return InkWell(
-            onTap: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => EditGoalModal(goal: g),
-              );
-            },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(g.title, style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 6),
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => EditGoalModal(
+                      goal: g,
+                      keyId: g.key as int,   // 🔥 WAJIB ADA!
+                    ),
+                  );
+                },
+                
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // TITLE & %
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        g.title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        "$percentage%",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
 
-                LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.grey.shade300,
-                  color: Colors.blue,
-                ),
+                  const SizedBox(height: 10),
 
-                const SizedBox(height: 14),
-              ],
+                  // PROGRESS BAR
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 7,
+                      backgroundColor: Colors.grey.shade300,
+                      color: barColor,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // MONEY DETAILS
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Terkumpul: Rp ${g.saved.toStringAsFixed(0)}",
+                        style: const TextStyle(fontSize: 12, color: Colors.black87),
+                      ),
+                      Text(
+                        "Target: Rp ${g.target.toStringAsFixed(0)}",
+                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  Text(
+                    "Sisa: Rp ${remaining.toStringAsFixed(0)}",
+                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                  ),
+
+                  if (g.deadline != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      "Deadline: ${g.deadline!.toLocal().toString().split(' ')[0]}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.blueGrey,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           );
         }).toList(),
@@ -812,6 +867,57 @@ class _DashboardPageState extends State<DashboardPage>
     ),
   );
 }
+ // Penutup _buildGoalsCard
+
+
+// ===========================================
+// WIDGET 2: _buildAccountsCard (Akun Saya)
+// ===========================================
+  Widget _buildAccountsCard() {
+    final accProvider = context.watch<AccountProvider>();
+    final accounts = accProvider.accounts;
+    final s = context.watch<SettingsProvider>();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Akun Saya",
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          if (accounts.isEmpty)
+            const Text(
+              "Belum ada akun",
+              style: TextStyle(color: Colors.black45),
+            )
+          else
+            ...accounts.map((acc) {
+              // Catatan: _accRow dan _fmt harus didefinisikan sebagai helper methods
+              return Column(
+                children: [
+                  _accRow(
+                    acc.name,
+                    acc.type,
+                    "${s.currencySymbol}${_fmt(s.convert(acc.balance))}",
+                  ),
+                  const Divider(),
+                ],
+              );
+            }).toList(),
+        ],
+      ),
+    );
+  } // Penutup _buildAccountsCard
   
   Widget _accRow(String title, String subtitle, String amount) {
     return Row(
@@ -848,15 +954,6 @@ class _DashboardPageState extends State<DashboardPage>
       children: [
         const Text("Transactions",
             style: TextStyle(fontWeight: FontWeight.w700)),
-        TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TransactionsPage()),
-            );
-          },
-          child: const Text("Lihat Semua"),
-        ),
       ],
     );
   }
@@ -907,7 +1004,7 @@ class _DashboardPageState extends State<DashboardPage>
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)
@@ -952,21 +1049,36 @@ class _DashboardPageState extends State<DashboardPage>
   // HELPERS
   // -------------------------------------------------------------------
 
-  String _fmt(double x) {
-    if (x.isNaN || x.isInfinite) return "0";
+  // Di dalam _DashboardPageState
 
-    final s = x.abs().round().toString().split('').reversed.join();
-    final parts = <String>[];
+  String _fmt(double x) {
+    if (x.isNaN || x.isInfinite) return "0,00"; // Default jika tidak valid
+
+    // 1. SELALU format ke 2 angka desimal (Contoh: 25000 -> "25000.00")
+    String numString = x.abs().toStringAsFixed(2);
+
+    // 2. Pisahkan bagian integer dan desimal
+    final parts = numString.split('.');
+    final integerPart = parts[0];
+    // decimalPart akan selalu ada karena toStringAsFixed(2)
+    final decimalPart = parts.length > 1 ? parts[1] : '00';
+
+    // 3. Logika Pemisah Ribuan (pada bagian integer)
+    final s = integerPart.split('').reversed.join();
+    final separatedParts = <String>[];
 
     for (int i = 0; i < s.length; i += 3) {
-      parts.add(s.substring(i, min(i + 3, s.length)));
+      separatedParts.add(s.substring(i, min(i + 3, s.length)));
     }
 
-    return parts
+    String formattedInteger = separatedParts
         .map((e) => e.split('').reversed.join())
         .toList()
         .reversed
-        .join('.');
+        .join('.'); // Titik (.) sebagai pemisah ribuan
+
+    // 4. Gabungkan dengan koma (,) sebagai pemisah desimal
+    return "$formattedInteger,$decimalPart";
   }
 
   String _short(double v) {
@@ -1014,7 +1126,7 @@ class _AnimatedDonut extends StatelessWidget {
   Widget build(BuildContext context) {
     final stops = <double>[];
     final colors = <Color>[];
-    
+
     double acc = 0;
 
     for (final seg in segments) {
@@ -1053,7 +1165,7 @@ class _AnimatedDonut extends StatelessWidget {
           height: donutSize * 0.58,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.08),
@@ -1080,17 +1192,38 @@ class _AnimatedDonut extends StatelessWidget {
   String _formatCenter() {
     final convertedTotal = total * conversionRate;
 
-    if (convertedTotal >= 1000000) {
-      return "${(convertedTotal / 1000000).toStringAsFixed(1)}M";
-    }
-    if (convertedTotal >= 1000) {
-      return "${(convertedTotal / 1000).toStringAsFixed(1)}K";
-    }
+    // Detect currency: Rp → Indonesian format, else English
+    final bool isIdr = currencySymbol.trim().toLowerCase().contains("rp");
 
-    return convertedTotal.toStringAsFixed(0);
+    if (isIdr) {
+      return _formatIdr(convertedTotal);
+    } else {
+      return _formatEnglish(convertedTotal);
+    }
+  }
+
+// ===============================
+// INDONESIAN SHORT FORMAT
+// ===============================
+  String _formatIdr(double v) {
+    if (v >= 1e12) return "${(v / 1e12).toStringAsFixed(1)} T";
+    if (v >= 1e9) return "${(v / 1e9).toStringAsFixed(2)} M";
+    if (v >= 1e6) return "${(v / 1e6).toStringAsFixed(1)} Jt";
+    if (v >= 1e3) return "${(v / 1e3).toStringAsFixed(1)} Rb";
+    return v.toStringAsFixed(0);
+  }
+
+// ===============================
+// ENGLISH SHORT FORMAT
+// ===============================
+  String _formatEnglish(double v) {
+    if (v >= 1e12) return "${(v / 1e12).toStringAsFixed(1)}T";
+    if (v >= 1e9) return "${(v / 1e9).toStringAsFixed(1)}B";
+    if (v >= 1e6) return "${(v / 1e6).toStringAsFixed(1)}M";
+    if (v >= 1e3) return "${(v / 1e3).toStringAsFixed(1)}K";
+    return v.toStringAsFixed(0);
   }
 }
-
 
 // -------------------------------------------------------------------
 // SHIMMER PLACEHOLDER (SKELETON LOADING)

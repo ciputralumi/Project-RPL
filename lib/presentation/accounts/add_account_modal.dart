@@ -92,7 +92,7 @@ class _AddAccountModalState extends State<AddAccountModal> {
   void _save() async {
     final acc = AccountModel(
       name: nameC.text,
-      bank: bankC.text,
+      type: bankC.text,
       balance: double.tryParse(balanceC.text) ?? 0,
     );
 
